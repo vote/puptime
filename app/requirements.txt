@@ -1,0 +1,11 @@
+django
+djangorestframework
+requests
+psycopg2-binary
+dj-database-url
+celery
+kombu
+requests
+black
+isort
+boto3
