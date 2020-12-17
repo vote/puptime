@@ -1,13 +1,17 @@
 from rest_framework import generics, viewsets
 from rest_framework.pagination import LimitOffsetPagination
 
-from .models import Proxy, Site, SiteCheck, SiteDowntime
+from .models import Proxy, Site, Check, Downtime
 from .serializers import (
     ProxySerializer,
-    SiteCheckSerializer,
-    SiteDowntimeSerializer,
+    CheckSerializer,
+    DowntimeSerializer,
     SiteSerializer,
 )
+
+import logging
+
+logger = logging.getLogger()
 
 # from apikey.auth import ApiKeyAuthentication, ApiKeyRequired
 # from apikey.models import ApiKey
@@ -40,14 +44,20 @@ class SiteViewSet(viewsets.ModelViewSet):
     serializer_class = SiteSerializer
     pagination_class = PaginationStyle
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        for k in self.request.query_params.keys():
+            if k in [f.name for f in Site._meta.fields]:
+                qs = qs.filter(**{k: self.request.query_params.get(k) or None})
+        return qs
 
 #    authentication_classes = [ApiKeyAuthentication]
 #    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
 
 
-class SiteCheckViewSet(viewsets.ModelViewSet):
-    queryset = SiteCheck.objects.all()
-    serializer_class = SiteCheckSerializer
+class CheckViewSet(viewsets.ModelViewSet):
+    queryset = Check.objects.all()
+    serializer_class = CheckSerializer
     pagination_class = PaginationStyle
 
 
@@ -55,10 +65,17 @@ class SiteCheckViewSet(viewsets.ModelViewSet):
 #    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
 
 
-class SiteDowntimeViewSet(viewsets.ModelViewSet):
-    queryset = SiteDowntime.objects.all()
-    serializer_class = SiteDowntimeSerializer
+class DowntimeViewSet(viewsets.ModelViewSet):
+    queryset = Downtime.objects.all()
+    serializer_class = DowntimeSerializer
     pagination_class = PaginationStyle
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        for k in self.request.query_params.keys():
+            if k in [f.name for f in Downtime._meta.fields]:
+                qs = qs.filter(**{k: self.request.query_params.get(k) or None})
+        return qs
 
 
 #    authentication_classes = [ApiKeyAuthentication]
@@ -67,16 +84,17 @@ class SiteDowntimeViewSet(viewsets.ModelViewSet):
 
 # nested site views
 class SiteChecksList(generics.ListAPIView):
-    serializer_class = SiteCheckSerializer
+    serializer_class = CheckSerializer
     pagination_class = PaginationStyle
 
     def get_queryset(self):
-        return SiteCheck.objects.filter(site_id=self.kwargs["pk"])
+        return Check.objects.filter(site_id=self.kwargs["pk"])
 
 
 class SiteDowntimeList(generics.ListAPIView):
-    serializer_class = SiteDowntimeSerializer
+    serializer_class = DowntimeSerializer
     pagination_class = PaginationStyle
+    
 
 
 # filtered site list views

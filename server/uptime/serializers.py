@@ -1,11 +1,11 @@
 from rest_framework import serializers
 
-from .models import Proxy, Site, SiteCheck, SiteDowntime
+from .models import Proxy, Site, Check, Downtime
 
 
-class SiteCheckSerializer(serializers.ModelSerializer):
+class CheckSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SiteCheck
+        model = Check
         fields = [
             "uuid",
             "site",
@@ -22,33 +22,36 @@ class SiteCheckSerializer(serializers.ModelSerializer):
 
 
 class SiteSerializer(serializers.ModelSerializer):
-    last_went_down_check = SiteCheckSerializer(read_only=True)
-    last_went_up_check = SiteCheckSerializer(read_only=True)
+    last_went_down_check = CheckSerializer(read_only=True)
+    last_went_up_check = CheckSerializer(read_only=True)
 
     class Meta:
         model = Site
         fields = [
             "uuid",
             "url",
+            "active",
             "description",
+            "metadata",
             "state_up",
             "state_changed_at",
             "last_went_down_check",
             "last_went_up_check",
-            "last_went_blocked_check",
-            "last_went_unblocked_check",
-            "last_tweet_at",
             "uptime_day",
             "uptime_week",
             "uptime_month",
             "uptime_quarter",
+            "blocked",
+            "blocked_changed_at",
+            "last_went_blocked_check",
+            "last_went_unblocked_check",
         ]
 
 
-class SiteDowntimeSerializer(serializers.ModelSerializer):
+class DowntimeSerializer(serializers.ModelSerializer):
     site = SiteSerializer(read_only=True)
-    down_check = SiteCheckSerializer(read_only=True)
-    up_check = SiteCheckSerializer(read_only=True)
+    down_check = CheckSerializer(read_only=True)
+    up_check = CheckSerializer(read_only=True)
     duration = serializers.SerializerMethodField("get_duration")
 
     def get_duration(self, obj):
@@ -58,7 +61,7 @@ class SiteDowntimeSerializer(serializers.ModelSerializer):
             return None
 
     class Meta:
-        model = SiteDowntime
+        model = Downtime
         fields = [
             "uuid",
             "site",

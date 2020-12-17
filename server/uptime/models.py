@@ -6,27 +6,32 @@ from common.models import TimestampModel, UUIDModel
 
 class Site(UUIDModel, TimestampModel):
     url = models.TextField(null=True)
+    active = models.BooleanField(default=True)
     description = models.TextField(null=True)
+    metadata = models.JSONField(null=True)
+    
     state_up = models.BooleanField(null=True)
     state_changed_at = models.DateTimeField(null=True)
     last_went_down_check = models.ForeignKey(
-        "SiteCheck", null=True, on_delete=models.CASCADE, related_name="site_down"
+        "Check", null=True, on_delete=models.CASCADE, related_name="site_down"
     )
     last_went_up_check = models.ForeignKey(
-        "SiteCheck", null=True, on_delete=models.CASCADE, related_name="site_up"
+        "Check", null=True, on_delete=models.CASCADE, related_name="site_up"
     )
     last_tweet_at = models.DateTimeField(null=True)
+
     uptime_day = models.FloatField(null=True)
     uptime_week = models.FloatField(null=True)
     uptime_month = models.FloatField(null=True)
     uptime_quarter = models.FloatField(null=True)
+
     blocked = models.BooleanField(null=True)
     blocked_changed_at = models.DateTimeField(null=True)
     last_went_blocked_check = models.ForeignKey(
-        "SiteCheck", null=True, on_delete=models.CASCADE, related_name="site_blocked"
+        "Check", null=True, on_delete=models.CASCADE, related_name="site_blocked"
     )
     last_went_unblocked_check = models.ForeignKey(
-        "SiteCheck", null=True, on_delete=models.CASCADE, related_name="site_unblocked"
+        "Check", null=True, on_delete=models.CASCADE, related_name="site_unblocked"
     )
 
     class Meta:
@@ -49,7 +54,7 @@ class Site(UUIDModel, TimestampModel):
         total_down = 0
         cutoff = 0
         r = []
-        for check in SiteCheck.objects.filter(site=self, ignore=False).order_by(
+        for check in Check.objects.filter(site=self, ignore=False).order_by(
             "-created_at"
         ):
             ts = check.created_at.timestamp()
@@ -89,7 +94,7 @@ class Site(UUIDModel, TimestampModel):
             cutoff = now - cutoffs.pop(0)
 
 
-class SiteCheck(UUIDModel, TimestampModel):
+class Check(UUIDModel, TimestampModel):
     site = models.ForeignKey("Site", null=True, on_delete=models.CASCADE)
     state_up = models.BooleanField(null=True)
     blocked = models.BooleanField(null=True)
@@ -104,13 +109,13 @@ class SiteCheck(UUIDModel, TimestampModel):
         ordering = ["-created_at"]
 
 
-class SiteDowntime(UUIDModel, TimestampModel):
+class Downtime(UUIDModel, TimestampModel):
     site = models.ForeignKey("Site", null=True, on_delete=models.CASCADE)
     down_check = models.ForeignKey(
-        "SiteCheck", on_delete=models.CASCADE, related_name="downtime_down"
+        "Check", on_delete=models.CASCADE, related_name="downtime_down"
     )
     up_check = models.ForeignKey(
-        "SiteCheck", null=True, on_delete=models.CASCADE, related_name="downtime_up"
+        "Check", null=True, on_delete=models.CASCADE, related_name="downtime_up"
     )
 
     def duration(self):

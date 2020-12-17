@@ -5,8 +5,8 @@ from . import api_views
 
 router = DefaultRouter()
 router.register(r"sites", api_views.SiteViewSet, basename="site")
-router.register(r"checks", api_views.SiteCheckViewSet, basename="check")
-router.register(r"downtimes", api_views.SiteDowntimeViewSet, basename="downtime")
+router.register(r"checks", api_views.CheckViewSet, basename="check")
+router.register(r"downtimes", api_views.DowntimeViewSet, basename="downtime")
 router.register(r"proxies", api_views.ProxyViewSet, basename="proxy")
 
 urlpatterns = router.urls + [
