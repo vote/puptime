@@ -68,16 +68,6 @@ class SiteDowntimeSerializer(serializers.ModelSerializer):
         ]
 
 class ProxySerializer(serializers.ModelSerializer):
-    def to_representation(self, obj):
-        r = super().to_representation(obj)
-        # ICK: By default, our enums serialize to JSON as the
-        # lowercase value defined in the enum, but only deserialize
-        # from the title-case symbol name.  Work around this lunacy by
-        # serialize in title case.  This works only because our states
-        # are all a single work (no _ or CamelCaps).
-        r["state"] = r["state"].title()
-        return r
-
     class Meta:
         model = Proxy
         fields = [

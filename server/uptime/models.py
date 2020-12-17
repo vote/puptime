@@ -125,7 +125,7 @@ class Proxy(UUIDModel, TimestampModel):
     description = models.TextField(null=True)
     state = models.TextField(
         null=True,
-        choices=[(tag, tag.value) for tag in enums.ProxyStatus]
+        choices=[(tag.name, tag.value) for tag in enums.ProxyStatus]
     )
     failure_count = models.IntegerField(null=True)
     last_used = models.DateTimeField(null=True)

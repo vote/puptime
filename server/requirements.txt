@@ -9,3 +9,9 @@ requests
 black
 isort
 boto3
+watchdog
+pyyaml
+argh
+environs
+netifaces
+autoflake

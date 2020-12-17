@@ -1,0 +1,7 @@
+python-dotenv
+requests
+paramiko
+autoflake
+boto3
+isort
+black

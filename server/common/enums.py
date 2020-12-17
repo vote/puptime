@@ -1,6 +1,6 @@
 from enum import Enum
 
-class ProxyStatus(Enum):
+class ProxyStatus(str, Enum):
     CREATING = "creating"
     PREPARING = "preparing"
     UP = "up"

@@ -1,0 +1,95 @@
+version: '3.7'
+services:
+  postgres:
+    container_name: postgres_uptime
+    image: postgres:13.1
+    environment:
+      - POSTGRES_DB=uptime
+      - POSTGRES_PASSWORD=uptime
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata_uptime:/var/lib/postgresql/data
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile-dev
+      cache_from:
+        - voteamerica/uptime-ci-cache:latest
+    image: voteamerica/uptime-ci-cache:latest
+    entrypoint: wait-for-it -t 45 postgres:5432 --
+    command: watchmedo auto-restart --directory /app/ --pattern=*.yml --recursive -- python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./server:/app:cached
+    ports:
+      - "9901:8000"
+    environment:
+      - SECRET_KEY=abcd
+      - DJANGO_SETTINGS_MODULE=app.settings
+      - DATABASE_URL=postgres://postgres:uptime@postgres:5432/uptime
+      - ALLOWED_HOSTS=*
+      - DEBUG=True
+      - DD_AGENT_HOST=ddagent
+      - DD_DOGSTATSD_PORT=3333
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+
+#  worker:
+#    build:
+#      context: .
+#      dockerfile: client/Dockerfile-dev
+#      cache_from:
+#        - voteamerica/uptime-worker:latest
+#    image: voteamerica/uptime-worker:latest
+#    entrypoint: wait-for-it -t 45 postgres:5432 --
+#    command: bash #watchmedo auto-restart --directory /client/ --pattern=*.yml --recursive -- python manage.py runserver 0.0.0.0:8000
+#    volumes:
+#      - ./worker:/worker:cached
+#    environment:
+#      - SECRET_KEY=abcd
+#      - ALLOWED_HOSTS=*
+#      - DEBUG=True
+#      - DD_AGENT_HOST=ddagent
+#      - DD_DOGSTATSD_PORT=3333
+#    env_file:
+#      - .env
+#    depends_on:
+#      - server
+
+  selenium:
+    image: selenium/standalone-chrome:3.141.59-20200525
+    ports:
+      - "4444:4444"
+    shm_size: '2gb'
+
+  echo:
+    image: voteamerica/uptime-ci-cache:latest
+    command: python -m echo
+    volumes:
+      - ./server/echo.py:/app/echo.py
+    ports:
+      - "3333:3333"
+
+  ddagent:
+    image: datadog/agent
+    environment:
+      - DD_APM_ENABLED=true
+      - DD_BIND_HOST=0.0.0.0
+      - DD_LOG_LEVEL=CRITICAL
+      - DATADOG_ENV=local
+      - DATADOG_SERVICE_NAME=local
+      - DD_TAGS='env:local'
+    expose:
+      - "8125/udp"
+      - "8126"
+    ports:
+      - "8125:8125/udp"
+      - "8126:8126"
+    env_file:
+      - .env
+
+volumes:
+  pgdata_uptime:
