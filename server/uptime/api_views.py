@@ -1,8 +1,5 @@
-from rest_framework import generics, permissions, viewsets
+from rest_framework import generics, viewsets
 from rest_framework.pagination import LimitOffsetPagination
-
-#from apikey.auth import ApiKeyAuthentication, ApiKeyRequired
-#from apikey.models import ApiKey
 
 from .models import Proxy, Site, SiteCheck, SiteDowntime
 from .serializers import (
@@ -11,6 +8,9 @@ from .serializers import (
     SiteDowntimeSerializer,
     SiteSerializer,
 )
+
+# from apikey.auth import ApiKeyAuthentication, ApiKeyRequired
+# from apikey.models import ApiKey
 
 
 class PaginationStyle(LimitOffsetPagination):
@@ -34,10 +34,13 @@ class ApiKeyAllowsUptimeOrReadonly(permissions.BasePermission):
         return False
 """
 
+
 class SiteViewSet(viewsets.ModelViewSet):
     queryset = Site.objects.all()
     serializer_class = SiteSerializer
     pagination_class = PaginationStyle
+
+
 #    authentication_classes = [ApiKeyAuthentication]
 #    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
 
@@ -46,6 +49,8 @@ class SiteCheckViewSet(viewsets.ModelViewSet):
     queryset = SiteCheck.objects.all()
     serializer_class = SiteCheckSerializer
     pagination_class = PaginationStyle
+
+
 #    authentication_classes = [ApiKeyAuthentication]
 #    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
 
@@ -54,6 +59,8 @@ class SiteDowntimeViewSet(viewsets.ModelViewSet):
     queryset = SiteDowntime.objects.all()
     serializer_class = SiteDowntimeSerializer
     pagination_class = PaginationStyle
+
+
 #    authentication_classes = [ApiKeyAuthentication]
 #    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
 
@@ -90,5 +97,7 @@ class ProxyViewSet(viewsets.ModelViewSet):
     queryset = Proxy.objects.all()
     serializer_class = ProxySerializer
     pagination_class = PaginationStyle
+
+
 #    authentication_classes = [ApiKeyAuthentication]
 #    permission_classes = [ApiKeyRequired]

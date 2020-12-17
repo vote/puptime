@@ -124,8 +124,7 @@ class Proxy(UUIDModel, TimestampModel):
     address = models.TextField(null=True)
     description = models.TextField(null=True)
     state = models.TextField(
-        null=True,
-        choices=[(tag.name, tag.value) for tag in enums.ProxyStatus]
+        null=True, choices=[(tag.name, tag.value) for tag in enums.ProxyStatus]
     )
     failure_count = models.IntegerField(null=True)
     last_used = models.DateTimeField(null=True)

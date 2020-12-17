@@ -67,6 +67,7 @@ class SiteDowntimeSerializer(serializers.ModelSerializer):
             "duration",
         ]
 
+
 class ProxySerializer(serializers.ModelSerializer):
     class Meta:
         model = Proxy
