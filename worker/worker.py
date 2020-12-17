@@ -21,6 +21,9 @@ if args.command == 'check-proxies':
 elif args.command == 'create-proxies':
     import proxy
     proxy.create_proxies(c, proxy.DigitalOceanProxy)
+elif args.command == 'check-all':
+    import check
+    check.check_all(c)
 
 """    
 sites = c.list('sites')

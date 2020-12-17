@@ -1,3 +1,4 @@
+import logging
 import time
 import tempfile
 import paramiko
@@ -7,7 +8,6 @@ import requests
 import uuid
 import logging
 import datetime
-
 
 
 PROXY_PORT_MIN = 2000
@@ -20,7 +20,6 @@ PROXY_SSH_KEY_ID = os.getenv("PROXY_SSH_KEY_ID")
 DIGITALOCEAN_KEY = os.getenv("DIGITALOCEAN_KEY")
 
 PROXY_TAG = os.getenv("PROXY_TAG")
-PROXY_TARGET = int(os.getenv("PROXY_TARGET", 5))
 
 
 REGIONS = [
@@ -60,7 +59,9 @@ SETUP = [
 ]
 
 
+
 logger = logging.getLogger()
+
 
 
 class DigitalOceanProxy(object):
@@ -235,31 +236,3 @@ class DigitalOceanProxy(object):
             logger.info(f"Removing stray droplet {name} {info['id']}")
             cls.remove_droplet(info["id"])
         logger.info("Cleanup done")
-
-
-PROXY_TYPES = [
-    DigitalOceanProxy
-]
-
-def cleanup(client):
-    for cls in PROXY_TYPES:
-        cls.cleanup(client)
-        
-def check_health(client):
-    pass
-
-def create_proxies(client, cls):
-    proxies = client.list('proxies')
-    num_up = 0
-    for proxy in proxies:
-        if proxy["state"] == "Up":
-            num_up += 1
-
-    if num_up < PROXY_TARGET:
-        want = PROXY_TARGET - num_up
-        logger.info(f"Have {num_up}/{PROXY_TARGET}, creating {want}")
-        for i in range(want):
-            cls.create(client)
-
-    
-    

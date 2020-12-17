@@ -1,26 +1,403 @@
-import logging
 import os
-from client import UptimeClient
-import dotenv
+import datetime
+import logging
+import random
+import uuid
 
-dotenv.load_dotenv()
-logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+import requests
 
-c = UptimeClient()
-sites = c.list('sites')
-proxies = c.list('proxies')
+from selenium import webdriver
+from selenium.common.exceptions import (
+    RemoteDriverServerException,
+    SessionNotCreatedException,
+    WebDriverException,
+)
 
-if True:
-    s = c.create(
-        'sites',
+DRIVER_TIMEOUT = 30
+
+SENTINEL_SITE = "https://voteamerica.com/"
+
+
+logger = logging.getLogger("uptime")
+
+
+class SeleniumError(Exception):
+    pass
+
+
+class NoProxyError(Exception):
+    pass
+
+
+class StaleProxyError(Exception):
+    pass
+
+
+class BurnedProxyError(Exception):
+    pass
+
+
+def get_sentinel_site(client):
+    sites = client.list('sites', {'description': 'sentinel'})
+    assert sites
+    return sites[0]
+
+
+def check_all(client):
+    drivers = get_drivers(client)
+    sites = client.list('sites')
+    random.shuffle(sites)
+    for site in sites:
+        check_site(client, drivers, site)
+
+
+def check_site(client, drivers, site):
+    # first try primary proxy
+    check = check_site_with_pos(client, drivers, 0, site)
+    bad_proxy = False
+    if not check["state_up"] or check["blocked"]:
+        # try another proxy
+        check2 = check_site_with_pos(client, drivers, 1, site)
+
+        if check2["state_up"] and not check2["blocked"]:
+            # new proxy is fine; ignore the failure
+            check.ignore = True
+            check.save()
+
+            check3 = check_site_with_pos(client, drivers, 0, site)
+            if check3["state_up"] and not check3["blocked"]:
+                # call it intermittent; stick with original proxy
+                check = check3
+            else:
+                # we've burned the proxy
+                logger.warning(f"We've burned {drivers[0][1]} on site {site}")
+                drivers[0][1].failure_count += 1
+                drivers[0][1].state = enums.ProxyStatus.BURNED
+                drivers[0][1].save()
+
+                check = check2
+
+                check3.ignore = True
+                check3.save()
+
+                bad_proxy = True
+        else:
+            # verify sentinel site loads
+            sentinel = get_sentinel_site(client)
+            check4 = check_site_with_pos(client, drivers, 0, sentinel)
+            if not check4["state_up"]:
+                raise NoProxyError("cannot reach sentinel site with original proxy")
+            check5 = check_site_with_pos(client, drivers, 1, sentinel)
+            if not check5["state_up"]:
+                raise NoProxyError("cannot reach sentinel site with backup proxy")
+
+    if site["state_up"] != check["state_up"]:
+        site["state_up"] = check["state_up"]
+        site["state_changed_at"] = check["created_at"]
+        if check["state_up"]:
+            downtime = None
+            if site["last_went_down_check"]:
+                for d in client.list('downtimes', {
+                        "site": site["uuid"],
+                        "down_check": site["last_went_down_check"],
+                }):
+                    downtime = d
+                    break
+            if downtime:
+                print(f"downtime is {downtime}")
+                client.update(
+                    "downtimes",
+                    downtime["uuid"],
+                    {
+                        "up_check": check["uuid"]
+                    }
+                )
+                site["last_went_up_check"] = check["uuid"]
+        else:
+            client.create(
+                "downtimes",
+                {
+                    "site": site["uuid"],
+                    "down_check": check["uuid"]
+                }
+            )
+            site["last_went_down_check"] = check["uuid"]
+
+    if site["blocked"] != check["blocked"]:
+        site["blocked"] = check["blocked"]
+        site["blocked_changed_at"] = check["created_at"]
+        if site["blocked"]:
+            site["last_went_blocked_check"] = check["uuid"]
+        else:
+            site["last_went_unblocked_check"] = check["uuid"]
+
+#    site.calc_uptimes()
+    client.update(
+        "sites",
+        site["uuid"],
+        site
+    )
+
+    if bad_proxy:
+        raise StaleProxyError()
+
+
+def check_site_with_pos(client, drivers, pos, site):
+    def reset_selenium():
+        reset_tries = 0
+        while True:
+            reset_tries += 1
+            logger.info(f"Reset driver pos {pos} attempt {reset_tries}")
+            try:
+                drivers[pos][0].quit()
+            except WebDriverException as e:
+                logger.warning(
+                    f"Failed to quit selenium worker for {drivers[pos][1]}: {e}"
+                )
+            try:
+                drivers[pos][0] = get_driver(drivers[pos][1])
+                break
+            except WebDriverException as e:
+                logger.warning(
+                    f"Failed to reset driver for {drivers[pos][1]}, reset tries {reset_tries}: {e}"
+                )
+                if reset_tries > 2:
+                    logger.warning(
+                        f"Failed to reset driver for {drivers[pos][1]}, reset tries {reset_tries}, giving up"
+                    )
+                    raise e
+
+    tries = 0
+    while True:
+        try:
+            tries += 1
+            check = check_site_with(client, drivers[pos][0], drivers[pos][1], site)
+            if check["error"] and "timeout" in check["error"]:
+                reset_selenium()
+            break
+        except SeleniumError as e:
+            logger.info(f"Selenium error on try {tries}: {e}")
+            if tries > 2:
+                raise e
+            reset_selenium()
+
+    return check
+
+
+def check_site_with(client, driver, proxy, site):
+    logger.debug(f"Checking {site['url']} with {proxy}")
+    error = None
+    timeout = None
+    title = ""
+    content = ""
+    before = datetime.datetime.utcnow()
+    try:
+        driver.get(site["url"])
+        up = True
+        title = driver.title
+        content = driver.page_source
+    except SessionNotCreatedException as e:
+        raise e
+    except RemoteDriverServerException as e:
+        raise e
+    except Exception as e:
+        if "Timed out receiving message from renderer: -" in str(e):
+            # if we get a negatime timeout it's because the worker is broken
+            raise SeleniumError(f"Problem talking to selenium worker: {e}")
+        if "establishing a connection" in str(e):
+            raise e
+        if "marionette" in str(e):
+            raise e
+        if "timeout" in str(e):
+            # we may tolerate timeout in some cases; see below
+            timeout = str(e)
+            up = True
+        else:
+            up = False
+            error = str(e)
+    after = datetime.datetime.utcnow()
+    dur = after - before
+
+    ignore = False
+    blocked = False
+    burn = False
+
+    # blocked?
+    BURN_LIST = [
+        "Request unsuccessful. Incapsula incident ID",
+        "<html><head></head><body></body></html>",
+    ]
+    """
+    if get_feature_bool("leouptime", "enable_burn_list"):
+        for b in BURN_LIST:
+            if b in content:
+                blocked = True
+                ignore = True
+                # make sure we've used this proxy on this site before...
+                if SiteCheck.objects.filter(
+                    site=site, proxy=proxy, state_up=True, blocked=False
+                ).exists():
+                    error = f"Proxy is burned (page contains '{b}')"
+                    burn = True
+                    break
+                else:
+                    logger.warning(
+                        f"Not burning {proxy} on {site} that has never successfully checked it before"
+                    )
+    """
+
+    if up and not blocked:
+        # the trick is determining if this loaded the real page or some sort of error/404 page.
+        for item in ["404", "not found", "error"]:
+            if item in title.lower():
+                up = False
+                error = f"'{item}' in page title"
+        for item in ["network outage"]:
+            if item in content.lower():
+                up = False
+                error = f"'{item}' in page content"
+
+        REQUIRED_STRINGS = [
+            "vote",
+            "Vote",
+            "Poll",
+            "poll",
+            "Absentee",
+            "ballot",
+            "Please enable JavaScript to view the page content.",  # for CT
+            "application/pdf",  # for WY
+        ]
+        have_any = False
+        for item in REQUIRED_STRINGS:
+            if item in content:
+                have_any = True
+        if not have_any:
+            up = False
+            if timeout:
+                error = timeout
+            else:
+                error = f"Cannot find any of {REQUIRED_STRINGS} not in page content"
+
+    check = client.create(
+        'checks',
         {
-            'url': 'http://foo.com',
-            'description': "asdf",
+            "site": site["uuid"],
+            "state_up": up,
+            "blocked": blocked,
+            "load_time": dur.total_seconds(),
+            "error": error,
+            "proxy": proxy['uuid'],
+            "ignore": ignore,
+            "title": title,
+#            "content": content,
         }
     )
 
-import proxy
-proxy.DigitalOceanProxy.create(c)
-proxy.DigitalOceanProxy.cleanup(c)
-proxy.create_proxies(c, proxy.DigitalOceanProxy)
+    if burn:
+        logger.info(f"BURNED PROXY: {site} ({error}) duration {dur}, {proxy}")
+        """
+        proxy.failure_count += 1
+        proxy.state = enums.ProxyStatus.BURNED
+        proxy.save()
+        """
+        raise StaleProxyError
+
+    if blocked:
+        logger.info(f"BLOCKED: {site} ({error}) duration {dur}, {proxy}")
+    elif up:
+        logger.info(f"UP: {site} ({error}) duration {dur}, {proxy}")
+    else:
+        logger.info(f"DOWN: {site} ({error}) duration {dur}, {proxy}")
+
+    return check
+
+
+def get_driver(proxy):
+    options = webdriver.ChromeOptions()
+    options.add_argument(f"--proxy-server=socks5://{proxy['address']}")
+
+    # https://stackoverflow.com/questions/48450594/selenium-timed-out-receiving-message-from-renderer
+    options.add_argument("--disable-gpu")
+    options.add_argument("enable-automation")
+    options.add_argument("--headless")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--dns-prefetch-disable")
+    options.add_argument(
+        "--disable-browser-side-navigation"
+    )  # https://stackoverflow.com/a/49123152/1689770
+
+    # random independent user dir
+    options.add_argument(f"--user-data-dir=/tmp/chrome-user-data-{uuid.uuid4()}")
+
+    caps = webdriver.DesiredCapabilities.CHROME.copy()
+    caps["pageLoadStrategy"] = "normal"
+
+    driver = webdriver.Remote(
+        command_executor=os.getenv("SELENIUM_URL", "http://localhost:4444/wd/hub"),
+        desired_capabilities=caps,
+        options=options,
+    )
+    driver.set_page_load_timeout(DRIVER_TIMEOUT)
+    return driver
+
+
+def get_drivers(client):
+    drivers = []
+
+    unused_proxies = client.list('proxies', {"state": "UP", "last_used": None})
+    #).order_by("failure_count", "created_at")
+    used_proxies = client.list('proxies', {"state": "UP"})
+#    
+#        Proxy.objects.filter(state=enums.ProxyStatus.UP).order_by(
+#            "failure_count", "last_used",
+#        )
+#    )
+
+    # always try to keep a fresh proxy in reserve, if we can
+    if unused_proxies and len(unused_proxies) + len(used_proxies) > 2:
+        reserve = unused_proxies.pop()
+        logger.debug(f"reserve {reserve}")
+
+    proxies = unused_proxies + used_proxies
+
+    if len(proxies) < 2:
+        logger.warning(f"not enough available proxies (only {len(proxies)})")
+        raise NoProxyError(f"{len(proxies)} available (need at least 2)")
+
+    # use one as a backup, and a random one as primary
+    backup = proxies.pop()
+    primary = proxies[0]
+    logger.info(f"backup {backup} last_used {backup['last_used']}")
+    logger.info(f"primary {primary} last_used {primary['last_used']}")
+    drivers.append([get_driver(primary), primary])
+    drivers.append([get_driver(backup), backup])
+
+    client.update(
+        'proxies',
+        primary["uuid"],
+        {
+            "last_used": datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
+        }
+    )
+
+    return drivers
+
+
+def to_pretty_timedelta(n):
+    if n < datetime.timedelta(seconds=120):
+        return str(int(n.total_seconds())) + "s"
+    if n < datetime.timedelta(minutes=120):
+        return str(int(n.total_seconds() // 60)) + "m"
+    if n < datetime.timedelta(hours=48):
+        return str(int(n.total_seconds() // 3600)) + "h"
+    if n < datetime.timedelta(days=14):
+        return str(int(n.total_seconds() // (24 * 3600))) + "d"
+    if n < datetime.timedelta(days=7 * 12):
+        return str(int(n.total_seconds() // (24 * 3600 * 7))) + "w"
+    if n < datetime.timedelta(days=365 * 2):
+        return str(int(n.total_seconds() // (24 * 3600 * 30))) + "M"
+    return str(int(n.total_seconds() // (24 * 3600 * 365))) + "y"
+
 

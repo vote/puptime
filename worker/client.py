@@ -1,3 +1,4 @@
+import urllib
 import logging
 import os
 import requests
@@ -34,8 +35,10 @@ class UptimeClient(object):
         )
         return session
 
-    def list(self, cls):
+    def list(self, cls, params=None):
         next_url = f"{self.base_url}/{cls}/"
+        if params:
+            next_url += '?' + urllib.parse.urlencode(params)
         r = []
         while next_url:
             response = self.session.get(next_url)
