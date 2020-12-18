@@ -9,7 +9,7 @@ from selenium.common.exceptions import (
 )
 
 from common import enums
-from uptime import proxy
+from uptime.selenium import get_driver, get_drivers
 
 from .models import Check, Downtime, Site
 
@@ -32,16 +32,10 @@ class BurnedProxyError(Exception):
     pass
 
 
-def get_sentinel_site():
-    sites = Site.objects.filter(description="sentinel")
-    assert sites
-    return sites[0]
-
-
 def check_all():
-    sites = Site.objects.filter(active=True)
+    sites = list(Site.objects.filter(active=True))
     logger.info("Checking all {len(sites)} sites")
-    drivers = proxy.get_drivers()
+    drivers = get_drivers()
     random.shuffle(sites)
     for site in sites:
         check_site(drivers, site)
@@ -50,6 +44,7 @@ def check_all():
 def check_site(drivers, site):
     # first try primary proxy
     check = check_site_with_pos(drivers, 0, site)
+
     bad_proxy = False
     if not check.state_up or check.blocked:
         # try another proxy
@@ -60,7 +55,7 @@ def check_site(drivers, site):
             check.ignore = True
             check.save()
 
-            check3 = check_site_with_pos(client, drivers, 0, site)
+            check3 = check_site_with_pos(drivers, 0, site)
             if check3.state_up and not check3.blocked:
                 # call it intermittent; stick with original proxy
                 check = check3
@@ -79,11 +74,11 @@ def check_site(drivers, site):
                 bad_proxy = True
         else:
             # verify sentinel site loads
-            sentinel = get_sentinel_site(client)
-            check4 = check_site_with_pos(client, drivers, 0, sentinel)
+            sentinel = proxy.get_sentinel_site()
+            check4 = check_site_with_pos(drivers, 0, sentinel)
             if not check4.state_up:
                 raise NoProxyError("cannot reach sentinel site with original proxy")
-            check5 = check_site_with_pos(client, drivers, 1, sentinel)
+            check5 = check_site_with_pos(drivers, 1, sentinel)
             if not check5.state_up:
                 raise NoProxyError("cannot reach sentinel site with backup proxy")
 
@@ -136,7 +131,7 @@ def check_site_with_pos(drivers, pos, site):
                     f"Failed to quit selenium worker for {drivers[pos][1]}: {e}"
                 )
             try:
-                drivers[pos][0] = proxy.get_driver(drivers[pos][1])
+                drivers[pos][0] = get_driver(drivers[pos][1])
                 break
             except WebDriverException as e:
                 logger.warning(
@@ -152,7 +147,7 @@ def check_site_with_pos(drivers, pos, site):
     while True:
         try:
             tries += 1
-            check = check_site_with(client, drivers[pos][0], drivers[pos][1], site)
+            check = check_site_with(drivers[pos][0], drivers[pos][1], site)
             if check.error and "timeout" in check.error:
                 reset_selenium()
             break
@@ -264,7 +259,7 @@ def check_site_with(driver, proxy, site):
             else:
                 error = f"Cannot find any of {REQUIRED_STRINGS} not in page content"
 
-    # ignore down checks until we have confirmed
+    # Important: we ignore down checks until we have confirmed the result
     if not up:
         ignore = True
 

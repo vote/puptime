@@ -1,7 +1,9 @@
 import logging
 
 from rest_framework import generics, viewsets
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from .models import Check, Downtime, Proxy, Site
 from .serializers import (
@@ -13,22 +15,18 @@ from .serializers import (
 
 logger = logging.getLogger("uptime")
 
-# from apikey.auth import ApiKeyAuthentication, ApiKeyRequired
-# from apikey.models import ApiKey
-
 
 class PaginationStyle(LimitOffsetPagination):
     default_limit = 100
 
-
-"""    
-class ApiKeyAllowsUptimeOrReadonly(permissions.BasePermission):
+    """
+class APIGroupOrReadonly(permissions.BasePermission):
     def has_permission(self, request, view):
         # Anybody can read
         if request.method in ["GET", "HEAD", "OPTIONS"]:
             return True
 
-        # API key with allow_uptime required for making changes
+        # Must be a member of group to make changes
         if (
             request.auth
             and isinstance(request.auth, ApiKey)
@@ -43,6 +41,8 @@ class SiteViewSet(viewsets.ModelViewSet):
     queryset = Site.objects.all()
     serializer_class = SiteSerializer
     pagination_class = PaginationStyle
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -52,24 +52,20 @@ class SiteViewSet(viewsets.ModelViewSet):
         return qs
 
 
-#    authentication_classes = [ApiKeyAuthentication]
-#    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
-
-
 class CheckViewSet(viewsets.ModelViewSet):
     queryset = Check.objects.all()
     serializer_class = CheckSerializer
     pagination_class = PaginationStyle
-
-
-#    authentication_classes = [ApiKeyAuthentication]
-#    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class DowntimeViewSet(viewsets.ModelViewSet):
     queryset = Downtime.objects.all()
     serializer_class = DowntimeSerializer
     pagination_class = PaginationStyle
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -79,14 +75,12 @@ class DowntimeViewSet(viewsets.ModelViewSet):
         return qs
 
 
-#    authentication_classes = [ApiKeyAuthentication]
-#    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
-
-
 # nested site views
 class SiteChecksList(generics.ListAPIView):
     serializer_class = CheckSerializer
     pagination_class = PaginationStyle
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         return Check.objects.filter(site_id=self.kwargs["pk"])
@@ -95,6 +89,8 @@ class SiteChecksList(generics.ListAPIView):
 class SiteDowntimeList(generics.ListAPIView):
     serializer_class = DowntimeSerializer
     pagination_class = PaginationStyle
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 # filtered site list views
@@ -102,12 +98,16 @@ class SiteDownList(generics.ListAPIView):
     queryset = Site.objects.filter(state_up=False)
     serializer_class = SiteSerializer
     pagination_class = PaginationStyle
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class SiteBlockedList(generics.ListAPIView):
     queryset = Site.objects.filter(blocked=True)
     serializer_class = SiteSerializer
     pagination_class = PaginationStyle
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 # require API key for these views
@@ -115,7 +115,5 @@ class ProxyViewSet(viewsets.ModelViewSet):
     queryset = Proxy.objects.all()
     serializer_class = ProxySerializer
     pagination_class = PaginationStyle
-
-
-#    authentication_classes = [ApiKeyAuthentication]
-#    permission_classes = [ApiKeyRequired]
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]

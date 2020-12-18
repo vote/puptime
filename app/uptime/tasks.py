@@ -2,8 +2,7 @@ import logging
 
 from celery import shared_task
 
-from . import proxy
-from . import check
+from . import check, proxy
 
 logger = logging.getLogger("uptime")
 
@@ -11,7 +10,7 @@ logger = logging.getLogger("uptime")
 @shared_task
 def tick():
     logger.info("tick")
-    
+
 
 @shared_task
 def test():

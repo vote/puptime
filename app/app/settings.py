@@ -172,11 +172,14 @@ LOGGING = {
         "uptime": {
             "handlers": [handler],
             "level": env.str("DJANGO_LOGGING_LEVEL", default="INFO"),
-        }
+        },
     },
 }
 
 
 ##
 
-PROXY_TARGET = env.int("PROXY_TARGET", 5)
+PROXY_TARGET = env.int("PROXY_TARGET", 3)
+
+SELENIUM_URL = env.str("SELENIUM_URL", "http://selenium:4444/wd/hub")
+SELENIUM_DRIVER_TIMEOUT = env.int("SELENIUM_DRIVER_TIMEOUT", 30)
