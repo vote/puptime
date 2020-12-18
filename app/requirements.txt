@@ -24,3 +24,6 @@ sentry-sdk
 redis
 django-redis
 kombu
+mypy
+django-stubs
+djangorestframework-stubs
