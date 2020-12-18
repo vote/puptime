@@ -40,6 +40,12 @@ class Site(UUIDModel, TimestampModel):
     def __str__(self):
         return f"Site {self.uuid} - {self.url}"
 
+    @classmethod
+    def get_sentinel_site(cls):
+        sites = Site.objects.filter(description="sentinel")
+        assert sites
+        return sites[0]
+
     def calc_uptimes(self):
         r = self.do_calc_uptime(
             [3600 * 24, 3600 * 24 * 7, 3600 * 24 * 30, 3600 * 24 * 90]

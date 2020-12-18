@@ -52,9 +52,8 @@ def check_site(drivers, site):
 
         if check2.state_up and not check2.blocked:
             # new proxy is fine; ignore the failure
-            check.ignore = True
-            check.save()
 
+            # check again
             check3 = check_site_with_pos(drivers, 0, site)
             if check3.state_up and not check3.blocked:
                 # call it intermittent; stick with original proxy
@@ -68,19 +67,20 @@ def check_site(drivers, site):
 
                 check = check2
 
-                check3.ignore = True
-                check3.save()
-
                 bad_proxy = True
         else:
             # verify sentinel site loads
-            sentinel = proxy.get_sentinel_site()
+            sentinel = Site.get_sentinel_site()
             check4 = check_site_with_pos(drivers, 0, sentinel)
             if not check4.state_up:
                 raise NoProxyError("cannot reach sentinel site with original proxy")
             check5 = check_site_with_pos(drivers, 1, sentinel)
             if not check5.state_up:
                 raise NoProxyError("cannot reach sentinel site with backup proxy")
+
+            # sentinel looks okay; do not ignore the failurex
+            check.ignore = False
+            check.save()
 
     if site.state_up != check.state_up:
         site.state_up = check.state_up

@@ -26,16 +26,10 @@ def cleanup():
         cls.cleanup()
 
 
-def get_sentinel_site():
-    sites = Site.objects.filter(description="sentinel")
-    assert sites
-    return sites[0]
-
-
 def test_proxies():
     logger.info("Testing proxies")
     ls = Proxy.objects.filter(status=enums.ProxyStatus.UP)
-    site = get_sentinel_site()
+    site = Site.get_sentinel_site()
     logger.info(f"Testing {len(ls)} UP proxies against sentinel {site}")
     bad = []
     for proxy in ls:
