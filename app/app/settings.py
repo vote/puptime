@@ -40,6 +40,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "uptime.tasks.tick",
         "schedule": crontab(minute=f"*/1"),
     },
+    "check-proxies": {
+        "task": "uptime.tasks.check_proxies",
+        "schedule": crontab(minute=f"*/15"),
+    },
+    "check-all": {
+        "task": "uptime.tasks.check_all",
+        "schedule": crontab(minute=f"*/5"),
+    },
 }
 
 # Application definition
