@@ -12,6 +12,7 @@ from app import settings
 
 PROXY_TYPES = [digitalocean.DigitalOceanProxy]
 
+
 def check():
     cleanup()
     test_proxies()

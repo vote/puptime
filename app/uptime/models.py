@@ -144,6 +144,7 @@ class Downtime(UUIDModel, TimestampModel):
 
 
 class Proxy(UUIDModel, TimestampModel):
+    source = models.TextField(null=True)
     address = models.TextField(null=True)
     description = models.TextField(null=True)
     status = models.TextField(

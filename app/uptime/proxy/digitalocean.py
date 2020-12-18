@@ -111,6 +111,7 @@ class DigitalOceanProxy(object):
 
         port = random.randint(PROXY_PORT_MIN, PROXY_PORT_MAX)
         proxy = Proxy.objects.create(
+            source="digitalocean",
             address=f"{ip}:{port}",
             description=name,
             status=enums.ProxyStatus.CREATING,
@@ -201,12 +202,11 @@ class DigitalOceanProxy(object):
         logger.info("Cleanup enumerating digitalocean proxies...")
         stray = cls.get_proxies_by_name()
         logger.info(f"Found {len(stray)} running proxies under tag {PROXY_TAG}")
-        creating_cutoff = (
-            datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
-            - datetime.timedelta(minutes=10)
-        )
+        creating_cutoff = datetime.datetime.utcnow().replace(
+            tzinfo=datetime.timezone.utc
+        ) - datetime.timedelta(minutes=10)
 
-        for proxy in Proxy.objects.all():
+        for proxy in Proxy.objects.filter(source="digitalocean"):
             if proxy.description in stray:
                 if proxy.status == enums.ProxyStatus.DOWN:
                     # we should delete this
