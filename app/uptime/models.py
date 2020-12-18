@@ -135,8 +135,11 @@ class ClassifierPattern(UUIDModel, TimestampModel):
 
 class Downtime(UUIDModel, TimestampModel):
     site = models.ForeignKey("Site", null=True, on_delete=models.CASCADE)
-    down_check = models.ForeignKey(
-        "Check", on_delete=models.CASCADE, related_name="downtime_down"
+    first_down_check = models.ForeignKey(
+        "Check", on_delete=models.CASCADE, related_name="downtime_first"
+    )
+    last_down_check = models.ForeignKey(
+        "Check", null=True, on_delete=models.CASCADE, related_name="downtime_last"
     )
     up_check = models.ForeignKey(
         "Check", null=True, on_delete=models.CASCADE, related_name="downtime_up"
