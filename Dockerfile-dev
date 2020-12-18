@@ -8,5 +8,5 @@ RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
     apt-get install -y wait-for-it gdal-bin postgis && \
     apt-get clean
 
-COPY server/requirements.txt $APP_DIR/
+COPY app/requirements.txt $APP_DIR/
 RUN pip install -r requirements.txt

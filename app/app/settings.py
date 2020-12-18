@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from pathlib import Path
 
 import environs
+from celery.schedules import crontab
 
 env = environs.Env()
 
@@ -21,20 +22,27 @@ env = environs.Env()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
+SECRET_KEY = env.str("SECRET_KEY", default="SET_THIS_KEY")
+DEBUG = env.bool("DEBUG", default=False)
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default="localhost")
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = ")qyi9(r2pekgulayw8$^e!6il=&jvayw$mr_yuk*x=s2rbs-_q"
+# CELERY #########################
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+CELERY_BROKER_URL = env.str("REDIS_URL", default="redis:x//redis:6379")
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_WORKER_CONCURRENCY = env.int("CELERY_WORKER_CONCURRENCY", default=8)
+CELERY_TASK_SERIALIZER = "json"
 
-ALLOWED_HOSTS = []
+CELERY_TASK_DEFAULT_QUEUE = "default"
 
+CELERY_BEAT_SCHEDULE = {
+    "test": {
+        "task": "uptime.tasks.tick",
+        "schedule": crontab(minute=f"*/1"),
+    },
+}
 
 # Application definition
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -42,6 +50,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",
+    "rest_framework",
+    "django_celery_results",
     "uptime",
 ]
 
@@ -123,3 +134,49 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = "/static/"
+
+
+## logging
+
+handler = "console" if DEBUG else "json"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+        "json": {"class": "logging.StreamHandler", "formatter": "json"},
+    },
+    "formatters": {
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "format": "%(name) %(message)s %(levelname) %(module) %(filename) %(funcName) %(lineno)",
+        }
+    },
+    "loggers": {
+        "django": {
+            "handlers": [handler],
+            "level": env.str("DJANGO_LOGGING_LEVEL", default="INFO"),
+        },
+        "ddtrace": {
+            "handlers": [handler],
+            "level": env.str("DJANGO_LOGGING_LEVEL", default="INFO"),
+        },
+        "common": {
+            "handlers": [handler],
+            "level": env.str("DJANGO_LOGGING_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+        "uptime": {
+            "handlers": [handler],
+            "level": env.str("DJANGO_LOGGING_LEVEL", default="INFO"),
+        }
+    },
+}
+
+
+##
+
+PROXY_TARGET = env.int("PROXY_TARGET", 5)

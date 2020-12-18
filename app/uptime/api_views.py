@@ -1,17 +1,17 @@
+import logging
+
 from rest_framework import generics, viewsets
 from rest_framework.pagination import LimitOffsetPagination
 
-from .models import Proxy, Site, Check, Downtime
+from .models import Check, Downtime, Proxy, Site
 from .serializers import (
-    ProxySerializer,
     CheckSerializer,
     DowntimeSerializer,
+    ProxySerializer,
     SiteSerializer,
 )
 
-import logging
-
-logger = logging.getLogger()
+logger = logging.getLogger("uptime")
 
 # from apikey.auth import ApiKeyAuthentication, ApiKeyRequired
 # from apikey.models import ApiKey
@@ -51,6 +51,7 @@ class SiteViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(**{k: self.request.query_params.get(k) or None})
         return qs
 
+
 #    authentication_classes = [ApiKeyAuthentication]
 #    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
 
@@ -60,24 +61,9 @@ class CheckViewSet(viewsets.ModelViewSet):
     serializer_class = CheckSerializer
     pagination_class = PaginationStyle
 
+
 #    authentication_classes = [ApiKeyAuthentication]
 #    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
-
-    # refresh uptime values when a check is modified
-    def perform_create(self, serializer):
-        check = serializer.save()
-        if check.site:
-            check.site.calc_uptimes()
-
-    def perform_update(self, serializer):
-        check = serializer.save()
-        if check.site:
-            check.site.calc_uptimes()
-
-    def perform_destroy(self, instance):
-        instance.delete()
-        if instance.site:
-            instance.site.calc_uptimes()
 
 
 class DowntimeViewSet(viewsets.ModelViewSet):
@@ -109,7 +95,6 @@ class SiteChecksList(generics.ListAPIView):
 class SiteDowntimeList(generics.ListAPIView):
     serializer_class = DowntimeSerializer
     pagination_class = PaginationStyle
-    
 
 
 # filtered site list views

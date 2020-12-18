@@ -9,7 +9,7 @@ class Site(UUIDModel, TimestampModel):
     active = models.BooleanField(default=True)
     description = models.TextField(null=True)
     metadata = models.JSONField(null=True)
-    
+
     state_up = models.BooleanField(null=True)
     state_changed_at = models.DateTimeField(null=True)
     last_went_down_check = models.ForeignKey(
@@ -44,7 +44,7 @@ class Site(UUIDModel, TimestampModel):
         r = self.do_calc_uptime(
             [3600 * 24, 3600 * 24 * 7, 3600 * 24 * 30, 3600 * 24 * 90]
         )
-        #print(r)
+        # print(r)
         (self.uptime_day, self.uptime_week, self.uptime_month, self.uptime_quarter) = r
 
     def do_calc_uptime(self, cutoffs):
@@ -146,7 +146,7 @@ class Downtime(UUIDModel, TimestampModel):
 class Proxy(UUIDModel, TimestampModel):
     address = models.TextField(null=True)
     description = models.TextField(null=True)
-    state = models.TextField(
+    status = models.TextField(
         null=True, choices=[(tag.name, tag.value) for tag in enums.ProxyStatus]
     )
     failure_count = models.IntegerField(null=True)
@@ -157,4 +157,4 @@ class Proxy(UUIDModel, TimestampModel):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Proxy {self.uuid} - {self.address} {self.state}"
+        return f"Proxy {self.uuid} - {self.address} {self.status}"

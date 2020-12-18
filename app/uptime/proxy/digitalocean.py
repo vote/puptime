@@ -1,14 +1,16 @@
-import logging
-import time
-import tempfile
-import paramiko
-import random
-import os
-import requests
-import uuid
-import logging
 import datetime
+import logging
+import os
+import random
+import tempfile
+import time
+import uuid
 
+import paramiko
+import requests
+
+from common import enums
+from uptime.models import Proxy
 
 PROXY_PORT_MIN = 2000
 PROXY_PORT_MAX = 60000
@@ -59,15 +61,12 @@ SETUP = [
 ]
 
 
-
-logger = logging.getLogger()
-
+logger = logging.getLogger("uptime")
 
 
 class DigitalOceanProxy(object):
-
     @classmethod
-    def create(cls, client, region=None):
+    def create(cls, region=None):
         if not region:
             region = random.choice(REGIONS)
 
@@ -87,7 +86,7 @@ class DigitalOceanProxy(object):
             },
             json=req,
         )
-        logger.info(response.json())
+        logger.debug(response.json())
         droplet_id = response.json()["droplet"]["id"]
 
         # wait for IP address
@@ -111,20 +110,16 @@ class DigitalOceanProxy(object):
             time.sleep(1)
 
         port = random.randint(PROXY_PORT_MIN, PROXY_PORT_MAX)
-        proxy = client.create(
-            "proxies",
-            {
-                "uuid": proxy_uuid,
-                "address": f"{ip}:{port}",
-                "description": name,
-                "state": "CREATING",
-                "failure_count": 0,
-                "metadata": {
-                    "provider": "digitalocean",
-                    "region": region,
-                    "droplet_id": droplet_id,
-                },
-            }
+        proxy = Proxy.objects.create(
+            address=f"{ip}:{port}",
+            description=name,
+            status=enums.ProxyStatus.CREATING,
+            failure_count=0,
+            metadata={
+                "provider": "digitalocean",
+                "region": region,
+                "droplet_id": droplet_id,
+            },
         )
 
         with tempfile.NamedTemporaryFile() as tmp_key:
@@ -139,7 +134,9 @@ class DigitalOceanProxy(object):
             while True:
                 try:
                     logger.info(f"Connecting to {ip} via SSH...")
-                    ssh.connect(ip, username="root", key_filename=tmp_key.name, timeout=10)
+                    ssh.connect(
+                        ip, username="root", key_filename=tmp_key.name, timeout=10
+                    )
                     break
                 except:
                     logger.info("Waiting a bit...")
@@ -159,9 +156,9 @@ class DigitalOceanProxy(object):
                 lines = stdout_.readlines()
                 logger.info(f"{cmd}: {lines}")
 
-        proxy["state"] = "UP"
+        proxy.status = enums.ProxyStatus.UP
+        proxy.save()
 
-        client.update("proxies", proxy["uuid"], proxy)
         logger.info(f"Created proxy {proxy}")
 
     @classmethod
@@ -179,7 +176,7 @@ class DigitalOceanProxy(object):
     @classmethod
     def remove_proxy(cls, proxy):
         logger.info(f"Removing proxy {proxy}")
-        cls.remove_droplet(proxy["metadata"].get("droplet_id"))
+        cls.remove_droplet(proxy.metadata.get("droplet_id"))
 
     @classmethod
     def get_proxies_by_name(cls):
@@ -200,35 +197,35 @@ class DigitalOceanProxy(object):
         return r
 
     @classmethod
-    def cleanup(cls, client):
+    def cleanup(cls):
         logger.info("Cleanup enumerating digitalocean proxies...")
         stray = cls.get_proxies_by_name()
         logger.info(f"Found {len(stray)} running proxies under tag {PROXY_TAG}")
-        creating_cutoff = (datetime.datetime.utcnow().replace(
-            tzinfo=datetime.timezone.utc
-        ) - datetime.timedelta(minutes=10)).isoformat()
+        creating_cutoff = (
+            datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+            - datetime.timedelta(minutes=10)
+        )
 
-        bad_proxies = []
-        for proxy in client.list('proxies'):
-            if proxy["description"] in stray:
-                if proxy["state"] == "DOWN":
+        for proxy in Proxy.objects.all():
+            if proxy.description in stray:
+                if proxy.status == enums.ProxyStatus.DOWN:
                     # we should delete this
                     logger.info(f"Proxy {proxy} marked Down")
                 elif (
-                        proxy["state"] == "CREATING"
-                        and proxy["modified_at"] < creating_cutoff
+                    proxy.status == enums.ProxyStatus.CREATING
+                    and proxy.modified_at < creating_cutoff
                 ):
                     # delete
                     logger.info(f"Proxy {proxy} has been Creating for too long")
-                    client.delete('proxies', proxy["uuid"])
+                    proxy.delete()
                 else:
                     # keep
-                    del stray[proxy["description"]]
+                    del stray[proxy.description]
             else:
-                if proxy["state"] != "DOWN":
+                if proxy.status != enums.ProxyStatus.DOWN:
                     logger.info(f"No droplet for proxy {proxy}, marking Down")
-                    proxy["state"] = "DOWN"
-                    client.update('proxies', proxy["uuid"], proxy)
+                    proxy.status = enums.ProxyStatus.DOWN
+                    proxy.save()
 
         for name, info in stray.items():
             if not name.startswith(PROXY_PREFIX):

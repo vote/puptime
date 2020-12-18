@@ -1,21 +1,17 @@
-import os
 import datetime
 import logging
 import random
-import uuid
 
-import requests
-
-from selenium import webdriver
 from selenium.common.exceptions import (
     RemoteDriverServerException,
     SessionNotCreatedException,
     WebDriverException,
 )
 
-from common import psite, pproxy, pcheck
-import proxy
+from common import enums
+from uptime import proxy
 
+from .models import Check, Downtime, Site
 
 logger = logging.getLogger("uptime")
 
@@ -36,40 +32,41 @@ class BurnedProxyError(Exception):
     pass
 
 
-def get_sentinel_site(client):
-    sites = client.list('sites', {'description': 'sentinel'})
+def get_sentinel_site():
+    sites = Site.objects.filter(description="sentinel")
     assert sites
     return sites[0]
 
 
-def check_all(client):
-    drivers = proxy.get_drivers(client)
-    sites = client.list('sites')
+def check_all():
+    sites = Site.objects.filter(active=True)
+    logger.info("Checking all {len(sites)} sites")
+    drivers = proxy.get_drivers()
     random.shuffle(sites)
     for site in sites:
-        check_site(client, drivers, site)
+        check_site(drivers, site)
 
 
-def check_site(client, drivers, site):
+def check_site(drivers, site):
     # first try primary proxy
-    check = check_site_with_pos(client, drivers, 0, site)
+    check = check_site_with_pos(drivers, 0, site)
     bad_proxy = False
-    if not check["state_up"] or check["blocked"]:
+    if not check.state_up or check.blocked:
         # try another proxy
-        check2 = check_site_with_pos(client, drivers, 1, site)
+        check2 = check_site_with_pos(drivers, 1, site)
 
-        if check2["state_up"] and not check2["blocked"]:
+        if check2.state_up and not check2.blocked:
             # new proxy is fine; ignore the failure
             check.ignore = True
             check.save()
 
             check3 = check_site_with_pos(client, drivers, 0, site)
-            if check3["state_up"] and not check3["blocked"]:
+            if check3.state_up and not check3.blocked:
                 # call it intermittent; stick with original proxy
                 check = check3
             else:
                 # we've burned the proxy
-                logger.warning(f"We've burned {drivers[0][1]} on site {psite(site)}")
+                logger.warning(f"We've burned {drivers[0][1]} on site {site}")
                 drivers[0][1].failure_count += 1
                 drivers[0][1].state = enums.ProxyStatus.BURNED
                 drivers[0][1].save()
@@ -84,64 +81,49 @@ def check_site(client, drivers, site):
             # verify sentinel site loads
             sentinel = get_sentinel_site(client)
             check4 = check_site_with_pos(client, drivers, 0, sentinel)
-            if not check4["state_up"]:
+            if not check4.state_up:
                 raise NoProxyError("cannot reach sentinel site with original proxy")
             check5 = check_site_with_pos(client, drivers, 1, sentinel)
-            if not check5["state_up"]:
+            if not check5.state_up:
                 raise NoProxyError("cannot reach sentinel site with backup proxy")
 
-    if site["state_up"] != check["state_up"]:
-        site["state_up"] = check["state_up"]
-        site["state_changed_at"] = check["created_at"]
-        if check["state_up"]:
+    if site.state_up != check.state_up:
+        site.state_up = check.state_up
+        site.state_changed_at = check.created_at
+        if check.state_up:
             downtime = None
-            if site["last_went_down_check"]:
-                for d in client.list('downtimes', {
-                        "site": site["uuid"],
-                        "down_check": site["last_went_down_check"],
-                }):
-                    downtime = d
-                    break
+            if site.last_went_down_check:
+                downtime = Downtime.objects.filter(
+                    site=site, down_check_isnull=True
+                ).first()
             if downtime:
                 print(f"downtime is {downtime}")
-                client.update(
-                    "downtimes",
-                    downtime["uuid"],
-                    {
-                        "up_check": check["uuid"]
-                    }
-                )
-                site["last_went_up_check"] = check["uuid"]
+                downtime.up_check = check
+                downtime.save()
+                site.last_went_up_check = check
         else:
-            client.create(
-                "downtimes",
-                {
-                    "site": site["uuid"],
-                    "down_check": check["uuid"]
-                }
+            Downtime.objects.create(
+                site=site,
+                down_check=check,
             )
-            site["last_went_down_check"] = check["uuid"]
+            site.last_went_down_check = check
 
-    if site["blocked"] != check["blocked"]:
-        site["blocked"] = check["blocked"]
-        site["blocked_changed_at"] = check["created_at"]
-        if site["blocked"]:
-            site["last_went_blocked_check"] = check["uuid"]
+    if site.blocked != check.blocked:
+        site.blocked = check.blocked
+        site.blocked_changed_at = check.created_at
+        if site.blocked:
+            site.last_went_blocked_check = check
         else:
-            site["last_went_unblocked_check"] = check["uuid"]
+            site.last_went_unblocked_check = check
 
-#    site.calc_uptimes()
-    client.update(
-        "sites",
-        site["uuid"],
-        site
-    )
+    site.calc_uptimes()
+    site.save()
 
     if bad_proxy:
         raise StaleProxyError()
 
 
-def check_site_with_pos(client, drivers, pos, site):
+def check_site_with_pos(drivers, pos, site):
     def reset_selenium():
         reset_tries = 0
         while True:
@@ -171,7 +153,7 @@ def check_site_with_pos(client, drivers, pos, site):
         try:
             tries += 1
             check = check_site_with(client, drivers[pos][0], drivers[pos][1], site)
-            if check["error"] and "timeout" in check["error"]:
+            if check.error and "timeout" in check.error:
                 reset_selenium()
             break
         except SeleniumError as e:
@@ -183,16 +165,16 @@ def check_site_with_pos(client, drivers, pos, site):
     return check
 
 
-def check_site_with(client, driver, proxy, site):
-    logger.debug(f"Checking {psite(site)} with {pproxy(proxy)}")
+def check_site_with(driver, proxy, site):
+    logger.debug(f"Checking {site} with {proxy}")
     error = None
     timeout = None
     title = ""
     content = ""
     before = datetime.datetime.utcnow()
     try:
-        driver.get(site["url"])
-        if site["description"] == "test" and not random.choice([0,1]):
+        driver.get(site.url)
+        if site.description == "test" and not random.choice([0, 1]):
             up = False
             title = "fake down title"
             content = "fake down content"
@@ -246,7 +228,7 @@ def check_site_with(client, driver, proxy, site):
                     break
                 else:
                     logger.warning(
-                        f"Not burning {pproxy(proxy)} on {psite(site)} that has never successfully checked it before"
+                        f"Not burning {proxy} on {site} that has never successfully checked it before"
                     )
     """
 
@@ -286,39 +268,33 @@ def check_site_with(client, driver, proxy, site):
     if not up:
         ignore = True
 
-    check = client.create(
-        'checks',
-        {
-            "site": site["uuid"],
-            "state_up": up,
-            "blocked": blocked,
-            "load_time": dur.total_seconds(),
-            "error": error,
-            "proxy": proxy['uuid'],
-            "ignore": ignore,
-            "title": title,
-#            "content": content,
-        }
+    check = Check.objects.create(
+        site=site,
+        state_up=up,
+        blocked=blocked,
+        load_time=dur.total_seconds(),
+        error=error,
+        proxy=proxy,
+        ignore=ignore,
+        title=title,
+        #        content=content,
     )
 
     if burn:
-        logger.info(f"BURNED PROXY: {psite(site)} ({error}) duration {dur}, {pproxy(proxy)}")
-        """
+        logger.info(f"BURNED PROXY: {site} ({error}) duration {dur}, {proxy}")
         proxy.failure_count += 1
         proxy.state = enums.ProxyStatus.BURNED
         proxy.save()
-        """
         raise StaleProxyError
 
     if blocked:
-        logger.info(f"BLOCKED: {psite(site)} ({error}) duration {dur}, {pproxy(proxy)}")
+        logger.info(f"BLOCKED: {site} ({error}) duration {dur}, {proxy}")
     elif up:
-        logger.info(f"UP: {psite(site)} ({error}) duration {dur}, {pproxy(proxy)}")
+        logger.info(f"UP: {site} ({error}) duration {dur}, {proxy}")
     else:
-        logger.info(f"DOWN: {psite(site)} ({error}) duration {dur}, {pproxy(proxy)}")
+        logger.info(f"DOWN: {site} ({error}) duration {dur}, {proxy}")
 
     return check
-
 
 
 def to_pretty_timedelta(n):
@@ -335,5 +311,3 @@ def to_pretty_timedelta(n):
     if n < datetime.timedelta(days=365 * 2):
         return str(int(n.total_seconds() // (24 * 3600 * 30))) + "M"
     return str(int(n.total_seconds() // (24 * 3600 * 365))) + "y"
-
-

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Proxy, Site, Check, Downtime
+from .models import Check, Downtime, Proxy, Site
 
 
 class CheckSerializer(serializers.ModelSerializer):
@@ -22,8 +22,8 @@ class CheckSerializer(serializers.ModelSerializer):
 
 
 class SiteSerializer(serializers.ModelSerializer):
-    #last_went_down_check = CheckSerializer(read_only=True)
-    #last_went_up_check = CheckSerializer(read_only=True)
+    # last_went_down_check = CheckSerializer(read_only=True)
+    # last_went_up_check = CheckSerializer(read_only=True)
 
     class Meta:
         model = Site
