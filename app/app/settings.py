@@ -28,7 +28,7 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default="localhost")
 
 # CELERY #########################
 
-CELERY_BROKER_URL = env.str("REDIS_URL", default="redis:x//redis:6379")
+CELERY_BROKER_URL = env.str("REDIS_URL", default="redis://redis:6379")
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_WORKER_CONCURRENCY = env.int("CELERY_WORKER_CONCURRENCY", default=8)
 CELERY_TASK_SERIALIZER = "json"
