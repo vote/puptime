@@ -22,8 +22,8 @@ class CheckSerializer(serializers.ModelSerializer):
 
 
 class SiteSerializer(serializers.ModelSerializer):
-    last_went_down_check = CheckSerializer(read_only=True)
-    last_went_up_check = CheckSerializer(read_only=True)
+    #last_went_down_check = CheckSerializer(read_only=True)
+    #last_went_up_check = CheckSerializer(read_only=True)
 
     class Meta:
         model = Site
@@ -49,9 +49,6 @@ class SiteSerializer(serializers.ModelSerializer):
 
 
 class DowntimeSerializer(serializers.ModelSerializer):
-    site = SiteSerializer(read_only=True)
-    down_check = CheckSerializer(read_only=True)
-    up_check = CheckSerializer(read_only=True)
     duration = serializers.SerializerMethodField("get_duration")
 
     def get_duration(self, obj):

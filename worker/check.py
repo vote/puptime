@@ -13,9 +13,8 @@ from selenium.common.exceptions import (
     WebDriverException,
 )
 
-DRIVER_TIMEOUT = 30
-
-SENTINEL_SITE = "https://voteamerica.com/"
+from common import psite, pproxy, pcheck
+import proxy
 
 
 logger = logging.getLogger("uptime")
@@ -44,7 +43,7 @@ def get_sentinel_site(client):
 
 
 def check_all(client):
-    drivers = get_drivers(client)
+    drivers = proxy.get_drivers(client)
     sites = client.list('sites')
     random.shuffle(sites)
     for site in sites:
@@ -70,7 +69,7 @@ def check_site(client, drivers, site):
                 check = check3
             else:
                 # we've burned the proxy
-                logger.warning(f"We've burned {drivers[0][1]} on site {site}")
+                logger.warning(f"We've burned {drivers[0][1]} on site {psite(site)}")
                 drivers[0][1].failure_count += 1
                 drivers[0][1].state = enums.ProxyStatus.BURNED
                 drivers[0][1].save()
@@ -155,7 +154,7 @@ def check_site_with_pos(client, drivers, pos, site):
                     f"Failed to quit selenium worker for {drivers[pos][1]}: {e}"
                 )
             try:
-                drivers[pos][0] = get_driver(drivers[pos][1])
+                drivers[pos][0] = proxy.get_driver(drivers[pos][1])
                 break
             except WebDriverException as e:
                 logger.warning(
@@ -185,7 +184,7 @@ def check_site_with_pos(client, drivers, pos, site):
 
 
 def check_site_with(client, driver, proxy, site):
-    logger.debug(f"Checking {site['url']} with {proxy}")
+    logger.debug(f"Checking {psite(site)} with {pproxy(proxy)}")
     error = None
     timeout = None
     title = ""
@@ -193,9 +192,14 @@ def check_site_with(client, driver, proxy, site):
     before = datetime.datetime.utcnow()
     try:
         driver.get(site["url"])
-        up = True
-        title = driver.title
-        content = driver.page_source
+        if site["description"] == "test" and not random.choice([0,1]):
+            up = False
+            title = "fake down title"
+            content = "fake down content"
+        else:
+            up = True
+            title = driver.title
+            content = driver.page_source
     except SessionNotCreatedException as e:
         raise e
     except RemoteDriverServerException as e:
@@ -242,7 +246,7 @@ def check_site_with(client, driver, proxy, site):
                     break
                 else:
                     logger.warning(
-                        f"Not burning {proxy} on {site} that has never successfully checked it before"
+                        f"Not burning {pproxy(proxy)} on {psite(site)} that has never successfully checked it before"
                     )
     """
 
@@ -278,6 +282,10 @@ def check_site_with(client, driver, proxy, site):
             else:
                 error = f"Cannot find any of {REQUIRED_STRINGS} not in page content"
 
+    # ignore down checks until we have confirmed
+    if not up:
+        ignore = True
+
     check = client.create(
         'checks',
         {
@@ -294,7 +302,7 @@ def check_site_with(client, driver, proxy, site):
     )
 
     if burn:
-        logger.info(f"BURNED PROXY: {site} ({error}) duration {dur}, {proxy}")
+        logger.info(f"BURNED PROXY: {psite(site)} ({error}) duration {dur}, {pproxy(proxy)}")
         """
         proxy.failure_count += 1
         proxy.state = enums.ProxyStatus.BURNED
@@ -303,86 +311,14 @@ def check_site_with(client, driver, proxy, site):
         raise StaleProxyError
 
     if blocked:
-        logger.info(f"BLOCKED: {site} ({error}) duration {dur}, {proxy}")
+        logger.info(f"BLOCKED: {psite(site)} ({error}) duration {dur}, {pproxy(proxy)}")
     elif up:
-        logger.info(f"UP: {site} ({error}) duration {dur}, {proxy}")
+        logger.info(f"UP: {psite(site)} ({error}) duration {dur}, {pproxy(proxy)}")
     else:
-        logger.info(f"DOWN: {site} ({error}) duration {dur}, {proxy}")
+        logger.info(f"DOWN: {psite(site)} ({error}) duration {dur}, {pproxy(proxy)}")
 
     return check
 
-
-def get_driver(proxy):
-    options = webdriver.ChromeOptions()
-    options.add_argument(f"--proxy-server=socks5://{proxy['address']}")
-
-    # https://stackoverflow.com/questions/48450594/selenium-timed-out-receiving-message-from-renderer
-    options.add_argument("--disable-gpu")
-    options.add_argument("enable-automation")
-    options.add_argument("--headless")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--dns-prefetch-disable")
-    options.add_argument(
-        "--disable-browser-side-navigation"
-    )  # https://stackoverflow.com/a/49123152/1689770
-
-    # random independent user dir
-    options.add_argument(f"--user-data-dir=/tmp/chrome-user-data-{uuid.uuid4()}")
-
-    caps = webdriver.DesiredCapabilities.CHROME.copy()
-    caps["pageLoadStrategy"] = "normal"
-
-    driver = webdriver.Remote(
-        command_executor=os.getenv("SELENIUM_URL", "http://localhost:4444/wd/hub"),
-        desired_capabilities=caps,
-        options=options,
-    )
-    driver.set_page_load_timeout(DRIVER_TIMEOUT)
-    return driver
-
-
-def get_drivers(client):
-    drivers = []
-
-    unused_proxies = client.list('proxies', {"state": "UP", "last_used": None})
-    #).order_by("failure_count", "created_at")
-    used_proxies = client.list('proxies', {"state": "UP"})
-#    
-#        Proxy.objects.filter(state=enums.ProxyStatus.UP).order_by(
-#            "failure_count", "last_used",
-#        )
-#    )
-
-    # always try to keep a fresh proxy in reserve, if we can
-    if unused_proxies and len(unused_proxies) + len(used_proxies) > 2:
-        reserve = unused_proxies.pop()
-        logger.debug(f"reserve {reserve}")
-
-    proxies = unused_proxies + used_proxies
-
-    if len(proxies) < 2:
-        logger.warning(f"not enough available proxies (only {len(proxies)})")
-        raise NoProxyError(f"{len(proxies)} available (need at least 2)")
-
-    # use one as a backup, and a random one as primary
-    backup = proxies.pop()
-    primary = proxies[0]
-    logger.info(f"backup {backup} last_used {backup['last_used']}")
-    logger.info(f"primary {primary} last_used {primary['last_used']}")
-    drivers.append([get_driver(primary), primary])
-    drivers.append([get_driver(backup), backup])
-
-    client.update(
-        'proxies',
-        primary["uuid"],
-        {
-            "last_used": datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
-        }
-    )
-
-    return drivers
 
 
 def to_pretty_timedelta(n):

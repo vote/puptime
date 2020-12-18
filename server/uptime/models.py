@@ -44,7 +44,7 @@ class Site(UUIDModel, TimestampModel):
         r = self.do_calc_uptime(
             [3600 * 24, 3600 * 24 * 7, 3600 * 24 * 30, 3600 * 24 * 90]
         )
-        #        print(r)
+        #print(r)
         (self.uptime_day, self.uptime_week, self.uptime_month, self.uptime_quarter) = r
 
     def do_calc_uptime(self, cutoffs):
@@ -107,6 +107,24 @@ class Check(UUIDModel, TimestampModel):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class Classifier(UUIDModel, TimestampModel):
+    name = models.TextField(null=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class ClassifierPattern(UUIDModel, TimestampModel):
+    classifier = models.ForeignKey("Classifier", on_delete=models.CASCADE)
+    pattern_type = models.TextField(
+        choices=[(tag.name, tag.value) for tag in enums.ClassifierPatternType]
+    )
+    pattern = models.TextField()
+
+    class Meta:
+        ordering = ["created_at"]
 
 
 class Downtime(UUIDModel, TimestampModel):

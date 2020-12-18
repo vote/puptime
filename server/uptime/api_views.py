@@ -60,9 +60,24 @@ class CheckViewSet(viewsets.ModelViewSet):
     serializer_class = CheckSerializer
     pagination_class = PaginationStyle
 
-
 #    authentication_classes = [ApiKeyAuthentication]
 #    permission_classes = [ApiKeyAllowsUptimeOrReadonly]
+
+    # refresh uptime values when a check is modified
+    def perform_create(self, serializer):
+        check = serializer.save()
+        if check.site:
+            check.site.calc_uptimes()
+
+    def perform_update(self, serializer):
+        check = serializer.save()
+        if check.site:
+            check.site.calc_uptimes()
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        if instance.site:
+            instance.site.calc_uptimes()
 
 
 class DowntimeViewSet(viewsets.ModelViewSet):

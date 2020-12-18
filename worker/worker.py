@@ -15,12 +15,18 @@ args = parser.parse_args()
 
 c = UptimeClient()
 
-if args.command == 'check-proxies':
+if args.command == 'cleanup-proxies':
     import proxy
     proxy.cleanup(c)
+elif args.command == 'test-proxies':
+    import proxy
+    proxy.test_proxies(c)
 elif args.command == 'create-proxies':
     import proxy
-    proxy.create_proxies(c, proxy.DigitalOceanProxy)
+    proxy.create_proxies(c)
+elif args.command == 'check-proxies':
+    import proxy
+    proxy.check(c)
 elif args.command == 'check-all':
     import check
     check.check_all(c)
