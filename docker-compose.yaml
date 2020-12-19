@@ -99,7 +99,7 @@ services:
     volumes:
       - ./app/echo.py:/app/echo.py
     ports:
-      - "3333:3333"
+      - "13333:3333"
 
   ddagent:
     image: datadog/agent
