@@ -1,5 +1,5 @@
 
-# Running too many tests is parallel exhausts shared memory on some
+# Running too many tests in parallel exhausts shared memory on some
 # machines (recent Ubuntu and Fedora in my case).
 MAXPROC ?= 16
 

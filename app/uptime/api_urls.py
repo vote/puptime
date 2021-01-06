@@ -5,6 +5,7 @@ from . import api_views
 
 router = DefaultRouter()
 router.register(r"sites", api_views.SiteViewSet, basename="site")
+router.register(r"sites-mine", api_views.SiteMineViewSet, basename="site")
 router.register(r"checks", api_views.CheckViewSet, basename="check")
 router.register(r"downtimes", api_views.DowntimeViewSet, basename="downtime")
 router.register(r"proxies", api_views.ProxyViewSet, basename="proxy")

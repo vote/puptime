@@ -6,6 +6,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from .models import Check, Downtime, Proxy, Site
+from .permissions import IsOwnerOrReadOnly
 from .serializers import (
     CheckSerializer,
     DowntimeSerializer,
@@ -19,30 +20,13 @@ logger = logging.getLogger("uptime")
 class PaginationStyle(LimitOffsetPagination):
     default_limit = 100
 
-    """
-class APIGroupOrReadonly(permissions.BasePermission):
-    def has_permission(self, request, view):
-        # Anybody can read
-        if request.method in ["GET", "HEAD", "OPTIONS"]:
-            return True
-
-        # Must be a member of group to make changes
-        if (
-            request.auth
-            and isinstance(request.auth, ApiKey)
-            and request.auth.allow_uptime
-        ):
-            return True
-        return False
-"""
-
 
 class SiteViewSet(viewsets.ModelViewSet):
     queryset = Site.objects.all()
     serializer_class = SiteSerializer
     pagination_class = PaginationStyle
     authentication_classes = [BasicAuthentication]
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsOwnerOrReadOnly]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -50,6 +34,24 @@ class SiteViewSet(viewsets.ModelViewSet):
             if k in [f.name for f in Site._meta.fields]:
                 qs = qs.filter(**{k: self.request.query_params.get(k) or None})
         return qs
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+
+class SiteMineViewSet(viewsets.ModelViewSet):
+    queryset = Site.objects.all()
+    serializer_class = SiteSerializer
+    pagination_class = PaginationStyle
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(owner=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 
 class CheckViewSet(viewsets.ModelViewSet):

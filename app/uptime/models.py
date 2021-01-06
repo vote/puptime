@@ -9,6 +9,9 @@ class Site(UUIDModel, TimestampModel):
     active = models.BooleanField(default=True)
     description = models.TextField(null=True)
     metadata = models.JSONField(null=True)
+    owner = models.ForeignKey(
+        "auth.User", related_name="sites", on_delete=models.CASCADE
+    )
 
     state_up = models.BooleanField(null=True)
     state_changed_at = models.DateTimeField(null=True)
