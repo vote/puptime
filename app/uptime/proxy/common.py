@@ -27,7 +27,6 @@ def cleanup():
 
 
 def test_proxies():
-    logger.info("Testing proxies")
     ls = Proxy.objects.filter(status=enums.ProxyStatus.UP)
     site = Site.get_sentinel_site()
     logger.info(f"Testing {len(ls)} UP proxies against sentinel {site}")
@@ -50,7 +49,6 @@ def test_proxies():
 
 
 def create_proxies(cls=PROXY_TYPES[0]):
-    logger.info("Creating proxies")
     proxies = Proxy.objects.filter(status=enums.ProxyStatus.UP)
     num_up = len(proxies)
 
