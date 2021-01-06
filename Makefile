@@ -4,7 +4,7 @@
 MAXPROC ?= 16
 
 up:
-	docker-compose up --build
+	scripts/up.sh
 
 build:
 	docker-compose build
