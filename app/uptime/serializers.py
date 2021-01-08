@@ -75,7 +75,7 @@ class ProxySerializer(serializers.ModelSerializer):
             "uuid",
             "address",
             "description",
-            "state",
+            "status",
             "failure_count",
             "last_used",
             "created_at",
