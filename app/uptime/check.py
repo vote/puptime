@@ -89,7 +89,7 @@ def check_site(drivers, site):
             downtime = None
             if site.last_went_down_check:
                 downtime = Downtime.objects.filter(
-                    site=site, first_down_check_isnull=True
+                    site=site, first_down_check__isnull=True
                 ).first()
             if downtime:
                 print(f"downtime is {downtime}")
@@ -100,6 +100,7 @@ def check_site(drivers, site):
             Downtime.objects.create(
                 site=site,
                 first_down_check=check,
+                last_down_check=check,
             )
             site.last_went_down_check = check
     elif not check.state_up:
@@ -107,7 +108,7 @@ def check_site(drivers, site):
         downtime = None
         if site.last_went_down_check:
             downtime = Downtime.objects.filter(
-                site=site, first_down_check_isnull=True
+                site=site, first_down_check__isnull=True
             ).first()
         if downtime:
             downtime.last_down_check = check
