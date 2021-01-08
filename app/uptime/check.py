@@ -282,7 +282,7 @@ def check_site_with(driver, proxy, site):
         proxy=proxy,
         ignore=ignore,
         title=title,
-        #        content=content,
+        content=content,
     )
 
     if burn:
