@@ -66,13 +66,21 @@ def get_drivers():
 
     proxies = unused_proxies + used_proxies
 
-    if len(proxies) < 2:
-        logger.warning(f"not enough available proxies (only {len(proxies)})")
-        raise NoProxyError(f"{len(proxies)} available (need at least 2)")
+    # verify the proxy is responding before we try to use it
+    verified = []
+    while len(verified) < 2:
+        from uptime.proxy import proxy_is_up
 
-    # use one as a backup, and a random one as primary
-    backup = proxies.pop()
-    primary = proxies[0]
+        if not proxies:
+            logger.warning(f"failed to find 2 working proxies")
+            raise NoProxyError(f"failed to find 2 working proxies")
+
+        proxy = proxies.pop()
+        if proxy_is_up(proxy.address):
+            verified.append(proxy)
+
+    backup = verified[0]
+    primary = verified[1]
     logger.info(f"backup {backup} last_used {backup.last_used}")
     logger.info(f"primary {primary} last_used {primary.last_used}")
     drivers.append([get_driver(primary), primary])

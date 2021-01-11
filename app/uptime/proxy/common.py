@@ -59,3 +59,31 @@ def create_proxies(cls=PROXY_TYPES[0]):
             cls.create()
     else:
         logger.info(f"Have {num_up}/{settings.PROXY_TARGET} proxies")
+
+
+def proxy_is_up(address: str, timeout: int = 3) -> bool:
+    import socket
+    import struct
+
+    sen = struct.pack("BBB", 0x05, 0x01, 0x00)
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    host, port = address.split(":")
+    s.settimeout(timeout)
+    try:
+        s.connect((host, int(port)))
+        s.sendall(sen)
+
+        data = s.recv(2)
+
+        version, auth = struct.unpack("BB", data)
+        s.close()
+        logger.info(f"proxy {address}, version {version}, auth {auth}")
+        return version == 5 and auth == 0
+
+    except socket.timeout:
+        logger.info(f"proxy {address} timed out")
+        return False
+    except Exception as e:
+        logger.info(f"proxy {address} failed: {e}")
+        return False

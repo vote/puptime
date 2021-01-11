@@ -17,6 +17,7 @@ class CheckAdmin(admin.ModelAdmin):
 class DowntimeAdmin(admin.ModelAdmin):
     list_display = ("site", "first_down_check", "last_down_check", "up_check")
 
+
 @admin.register(models.Proxy)
 class ProxyAdmin(admin.ModelAdmin):
     list_display = ("source", "address", "description", "status")
