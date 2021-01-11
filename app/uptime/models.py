@@ -113,6 +113,7 @@ class Check(UUIDModel, TimestampModel):
     proxy = models.ForeignKey("Proxy", null=True, on_delete=models.CASCADE)
     title = models.TextField(null=True)
     content = models.TextField(null=True)
+    snapshot_url = models.TextField(null=True)
 
     class Meta:
         ordering = ["-created_at"]

@@ -2,6 +2,7 @@ import datetime
 import logging
 import random
 
+from django.conf import settings
 from selenium.common.exceptions import (
     RemoteDriverServerException,
     SessionNotCreatedException,
@@ -9,6 +10,7 @@ from selenium.common.exceptions import (
 )
 
 from common import enums
+from common.aws import s3_client
 from uptime.selenium import get_driver, get_drivers
 
 from .models import Check, Downtime, Site
@@ -177,6 +179,7 @@ def check_site_with(driver, proxy, site):
     timeout = None
     title = ""
     content = ""
+    png = None
     before = datetime.datetime.utcnow()
     try:
         driver.get(site.url)
@@ -188,6 +191,7 @@ def check_site_with(driver, proxy, site):
             up = True
             title = driver.title
             content = driver.page_source
+            png = driver.get_screenshot_as_png()
     except SessionNotCreatedException as e:
         raise e
     except RemoteDriverServerException as e:
@@ -285,6 +289,25 @@ def check_site_with(driver, proxy, site):
         title=title,
         content=content,
     )
+
+    # upload png to s3
+    filename = str(check.uuid) + ".png"
+    upload = s3_client.put_object(
+        Bucket=settings.SNAPSHOT_BUCKET,
+        Key=filename,
+        ContentType="image/png",
+        ACL="public-read",
+        Body=png,
+    )
+    if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
+        logger.warning(
+            f"{number}: Unable to push {filename} to {settings.SNAPSHOT_BUCKET}"
+        )
+    else:
+        check.snapshot_url = (
+            f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{filename}"
+        )
+        check.save()
 
     if burn:
         logger.info(f"BURNED PROXY: {site} ({error}) duration {dur}, {proxy}")

@@ -191,3 +191,14 @@ PROXY_TARGET = env.int("PROXY_TARGET", 3)
 
 SELENIUM_URL = env.str("SELENIUM_URL", "http://selenium:4444/wd/hub")
 SELENIUM_DRIVER_TIMEOUT = env.int("SELENIUM_DRIVER_TIMEOUT", 30)
+
+
+#### AWS CONFIGURATION
+
+AWS_ACCESS_KEY_ID = env.str("AWS_ACCESS_KEY_ID", default="")
+AWS_SECRET_ACCESS_KEY = env.str("AWS_SECRET_ACCESS_KEY", default="")
+AWS_DEFAULT_REGION = env.str("AWS_DEFAULT_REGION", default="us-west-2")
+
+SNAPSHOT_BUCKET = env.str("SNAPSHOT_BUCKET", default=None)
+
+#### END AWS CONFIGURATION
