@@ -10,15 +10,24 @@ from uptime.check import check_site_with
 from uptime.models import Proxy, Site
 from uptime.selenium import get_driver
 
-from . import digitalocean
+from . import digitalocean, ec2
 
 logger = logging.getLogger("uptime")
 
 from django.conf import settings
 
-PROXY_TYPES = [digitalocean.DigitalOceanProxy]
+PROXY_TYPES = {
+    "digitalocean": {
+        "cls": digitalocean.DigitalOceanProxy,
+        "target": 4,
+    },
+    "ec2": {
+        "cls": ec2.EC2Proxy,
+        "target": 3,
+    },
+}
 
-PROXY_PORT_MIN = 2000
+PROXY_PORT_MIN = 40000
 PROXY_PORT_MAX = 60000
 
 
@@ -30,7 +39,8 @@ def check():
 
 def cleanup():
     logger.info("Cleaning up proxies")
-    for cls in PROXY_TYPES:
+    for source, info in PROXY_TYPES.items():
+        cls = info["cls"]
         cls.cleanup()
 
 
@@ -56,17 +66,20 @@ def test_proxies():
                 proxy.save()
 
 
-def create_proxies(cls=PROXY_TYPES[0]):
-    proxies = Proxy.objects.filter(status=enums.ProxyStatus.UP)
-    num_up = len(proxies)
+def create_proxies():
+    for source, info in PROXY_TYPES.items():
+        cls = info["cls"]
+        target = info["target"]
+        proxies = Proxy.objects.filter(status=enums.ProxyStatus.UP, source=source)
+        num_up = len(proxies)
 
-    if num_up < settings.PROXY_TARGET:
-        want = settings.PROXY_TARGET - num_up
-        logger.info(f"Have {num_up}/{settings.PROXY_TARGET} proxies, creating {want}")
-        for i in range(want):
-            cls.create()
-    else:
-        logger.info(f"Have {num_up}/{settings.PROXY_TARGET} proxies")
+        if num_up < target:
+            want = target - num_up
+            logger.info(f"Have {num_up}/{target} {source} proxies, creating {want}")
+            for i in range(want):
+                cls.create()
+        else:
+            logger.info(f"Have {num_up}/{target} {source} proxies")
 
 
 def proxy_is_up(address: str, timeout: int = 3) -> bool:
@@ -97,7 +110,7 @@ def proxy_is_up(address: str, timeout: int = 3) -> bool:
         return False
 
 
-def create_ubuntu_proxy(source, name, ip, metadata):
+def create_ubuntu_proxy(source, name, ip, metadata, user):
     port = random.randint(PROXY_PORT_MIN, PROXY_PORT_MAX)
 
     metadata.update(
@@ -114,23 +127,28 @@ def create_ubuntu_proxy(source, name, ip, metadata):
         metadata=metadata,
     )
 
+    if user == "root":
+        home = "/root"
+    else:
+        home = f"/home/{user}"
+
     UNITFILE = f"""[Unit]
 Description=microsocks
 After=network.target
 [Service]
-ExecStart=/root/microsocks/microsocks -p {port}
+ExecStart={home}/microsocks/microsocks -p {port}
 [Install]
 WantedBy=multi-user.target
 """
     SETUP = [
-        f"hostname {proxy.description}",
-        f"echo {proxy.description} > /etc/hostname",
-        "apt update",
-        "apt install -y gcc make",
+        f"sudo hostname {proxy.description}",
+        f"echo {proxy.description} > sudo tee /etc/hostname",
+        "sudo apt update",
+        "sudo apt install -y gcc make",
         "git clone https://github.com/rofl0r/microsocks",
         "cd microsocks && make",
-        "systemctl enable microsocks.service",
-        "systemctl start microsocks.service",
+        "sudo systemctl enable microsocks.service",
+        "sudo systemctl start microsocks.service",
     ]
 
     with tempfile.NamedTemporaryFile() as tmp_key:
@@ -145,7 +163,7 @@ WantedBy=multi-user.target
         while True:
             try:
                 logger.info(f"Connecting to {ip} via SSH...")
-                ssh.connect(ip, username="root", key_filename=tmp_key.name, timeout=10)
+                ssh.connect(ip, username=user, key_filename=tmp_key.name, timeout=10)
                 break
             except:
                 logger.info("Waiting a bit...")
@@ -153,17 +171,22 @@ WantedBy=multi-user.target
 
         logger.info("Writing systemd unit...")
         stdin_, stdout_, stderr_ = ssh.exec_command(
-            "cat >/etc/systemd/system/microsocks.service"
+            "cat | sudo tee /etc/systemd/system/microsocks.service"
         )
         stdin_.write(UNITFILE)
         stdin_.close()
         stdout_.channel.recv_exit_status()
 
+        logger.info("Waiting a few seconds for release-upgrader thing to run...")
+        time.sleep(15)
+
         for cmd in SETUP:
+            logger.info(f"  # {cmd}")
             stdin_, stdout_, stderr_ = ssh.exec_command(cmd)
             stdout_.channel.recv_exit_status()
             lines = stdout_.readlines()
-            logger.info(f"{cmd}: {lines}")
+            for line in lines:
+                logger.info(f"  {line.strip()}")
 
     if not proxy_is_up(f"{ip}:{port}"):
         logger.warning(f"new proxy {ip}:{port} does not appear to be reachable")

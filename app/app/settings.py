@@ -201,12 +201,12 @@ AWS_ACCESS_KEY_ID = env.str("AWS_ACCESS_KEY_ID", default="")
 AWS_SECRET_ACCESS_KEY = env.str("AWS_SECRET_ACCESS_KEY", default="")
 AWS_DEFAULT_REGION = env.str("AWS_DEFAULT_REGION", default="us-west-2")
 
+AWS_PROXY_ROLE_ARN = env.str("AWS_PROXY_ROLE_ARN", default=None)
+AWS_PROXY_ROLE_SESSION_NAME = env.str("AWS_PROXY_ROLE_SESSION_NAME", default=None)
+
 SNAPSHOT_BUCKET = env.str("SNAPSHOT_BUCKET", default=None)
 
-PROXY_AMI = env.str("PROXY_AMI", default="")
-PROXY_INSTANCE_TYPE = env.str("PROXY_INSTANCE_TYPE", default="t2.nano")
-PROXY_KEY_NAME = env.str("PROXY_KEY_NAME", default=None)
-PROXY_SGID = env.str("PROXY_SGID", default=None)
+AWS_PROXY_KEY_NAME = env.str("AWS_PROXY_KEY_NAME", default="uptime-proxy")
 
 #### END AWS CONFIGURATION
 

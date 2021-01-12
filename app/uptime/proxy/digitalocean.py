@@ -87,6 +87,7 @@ class DigitalOceanProxy(object):
                 "region": region,
                 "droplet_id": droplet_id,
             },
+            "root",
         )
 
     @classmethod
