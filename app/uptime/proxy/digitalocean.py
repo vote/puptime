@@ -1,28 +1,16 @@
 import datetime
 import logging
-import os
 import random
-import tempfile
 import time
 import uuid
 
-import paramiko
 import requests
+from django.conf import settings
 
 from common import enums
 from uptime.models import Proxy
 
-PROXY_PORT_MIN = 2000
-PROXY_PORT_MAX = 60000
 PROXY_PREFIX = "proxy-"
-
-PROXY_SSH_KEY = os.getenv("PROXY_SSH_KEY").replace("\\n", "\n").encode("utf-8")
-PROXY_SSH_KEY_ID = os.getenv("PROXY_SSH_KEY_ID")
-
-DIGITALOCEAN_KEY = os.getenv("DIGITALOCEAN_KEY")
-
-PROXY_TAG = os.getenv("PROXY_TAG")
-
 
 REGIONS = [
     "nyc1",
@@ -34,32 +22,12 @@ REGIONS = [
 CREATE_TEMPLATE = {
     "size": "s-1vcpu-1gb",
     "image": "ubuntu-18-04-x64",
-    "ssh_keys": [PROXY_SSH_KEY_ID],
+    "ssh_keys": [settings.PROXY_SSH_KEY_ID],
     "backups": False,
     "ipv6": False,
 }
 
 DROPLET_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
-
-UNITFILE = """
-[Unit]
-Description=microsocks
-After=network.target
-[Service]
-ExecStart=/root/microsocks/microsocks -p {port}
-[Install]
-WantedBy=multi-user.target
-"""
-
-SETUP = [
-    "apt update",
-    "apt install -y gcc make",
-    "git clone https://github.com/rofl0r/microsocks",
-    "cd microsocks && make",
-    "systemctl enable microsocks.service",
-    "systemctl start microsocks.service",
-]
-
 
 logger = logging.getLogger("uptime")
 
@@ -67,6 +35,8 @@ logger = logging.getLogger("uptime")
 class DigitalOceanProxy(object):
     @classmethod
     def create(cls, region=None):
+        from uptime.proxy.common import create_ubuntu_proxy
+
         if not region:
             region = random.choice(REGIONS)
 
@@ -77,11 +47,11 @@ class DigitalOceanProxy(object):
         req = CREATE_TEMPLATE.copy()
         req["name"] = name
         req["region"] = region
-        req["tags"] = [PROXY_TAG]
+        req["tags"] = [f"env:{settings.PROXY_TAG}"]
         response = requests.post(
             DROPLET_ENDPOINT,
             headers={
-                "Authorization": f"Bearer {DIGITALOCEAN_KEY}",
+                "Authorization": f"Bearer {settings.DIGITALOCEAN_KEY}",
                 "Content-Type": "application/json",
             },
             json=req,
@@ -96,7 +66,7 @@ class DigitalOceanProxy(object):
             response = requests.get(
                 f"{DROPLET_ENDPOINT}/{droplet_id}",
                 headers={
-                    "Authorization": f"Bearer {DIGITALOCEAN_KEY}",
+                    "Authorization": f"Bearer {settings.DIGITALOCEAN_KEY}",
                     "Content-Type": "application/json",
                 },
             )
@@ -109,58 +79,15 @@ class DigitalOceanProxy(object):
             logger.info("waiting for IP")
             time.sleep(1)
 
-        port = random.randint(PROXY_PORT_MIN, PROXY_PORT_MAX)
-        proxy = Proxy.objects.create(
-            source="digitalocean",
-            address=f"{ip}:{port}",
-            description=name,
-            status=enums.ProxyStatus.CREATING,
-            failure_count=0,
-            metadata={
-                "provider": "digitalocean",
+        create_ubuntu_proxy(
+            "digitalocean",
+            name,
+            ip,
+            {
                 "region": region,
                 "droplet_id": droplet_id,
             },
         )
-
-        with tempfile.NamedTemporaryFile() as tmp_key:
-            tmp_key.write(PROXY_SSH_KEY)
-            tmp_key.flush()
-
-            # logger.info(f"IP is {ip}, waiting for machine to come up...")
-            # time.sleep(60)
-
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy)
-            while True:
-                try:
-                    logger.info(f"Connecting to {ip} via SSH...")
-                    ssh.connect(
-                        ip, username="root", key_filename=tmp_key.name, timeout=10
-                    )
-                    break
-                except:
-                    logger.info("Waiting a bit...")
-                    time.sleep(5)
-
-            logger.info("Writing systemd unit...")
-            stdin_, stdout_, stderr_ = ssh.exec_command(
-                "cat >/etc/systemd/system/microsocks.service"
-            )
-            stdin_.write(UNITFILE.format(port=port))
-            stdin_.close()
-            stdout_.channel.recv_exit_status()
-
-            for cmd in SETUP:
-                stdin_, stdout_, stderr_ = ssh.exec_command(cmd)
-                stdout_.channel.recv_exit_status()
-                lines = stdout_.readlines()
-                logger.info(f"{cmd}: {lines}")
-
-        proxy.status = enums.ProxyStatus.UP
-        proxy.save()
-
-        logger.info(f"Created proxy {proxy}")
 
     @classmethod
     def remove_droplet(cls, droplet_id):
@@ -168,7 +95,7 @@ class DigitalOceanProxy(object):
         response = requests.delete(
             f"{DROPLET_ENDPOINT}/{droplet_id}/destroy_with_associated_resources/dangerous",
             headers={
-                "Authorization": f"Bearer {DIGITALOCEAN_KEY}",
+                "Authorization": f"Bearer {settings.DIGITALOCEAN_KEY}",
                 "Content-Type": "application/json",
                 "X-Dangerous": "true",
             },
@@ -187,12 +114,12 @@ class DigitalOceanProxy(object):
             response = requests.get(
                 nexturl,
                 headers={
-                    "Authorization": f"Bearer {DIGITALOCEAN_KEY}",
+                    "Authorization": f"Bearer {settings.DIGITALOCEAN_KEY}",
                     "Content-Type": "application/json",
                 },
             )
             for droplet in response.json().get("droplets", []):
-                if PROXY_TAG in droplet["tags"]:
+                if f"env:{settings.PROXY_TAG}" in droplet["tags"]:
                     r[droplet["name"]] = droplet
             nexturl = response.json().get("links", {}).get("pages", {}).get("next")
         return r
@@ -201,7 +128,9 @@ class DigitalOceanProxy(object):
     def cleanup(cls):
         logger.info("Cleanup enumerating digitalocean proxies...")
         stray = cls.get_proxies_by_name()
-        logger.info(f"Found {len(stray)} running proxies under tag {PROXY_TAG}")
+        logger.info(
+            f"Found {len(stray)} running proxies under tag env:{settings.PROXY_TAG}"
+        )
         creating_cutoff = datetime.datetime.utcnow().replace(
             tzinfo=datetime.timezone.utc
         ) - datetime.timedelta(minutes=10)

@@ -21,6 +21,7 @@ env = environs.Env()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+ENV = env.str("ENV", default="dev")
 
 SECRET_KEY = env.str("SECRET_KEY", default="SET_THIS_KEY")
 DEBUG = env.bool("DEBUG", default=False)
@@ -46,7 +47,8 @@ CELERY_BEAT_SCHEDULE = {
     },
     "check-all": {
         "task": "uptime.tasks.check_all",
-        "schedule": crontab(minute=f"*/5"),
+        #        "schedule": crontab(minute=f"*/5"),
+        "schedule": crontab(minute=0, hour="*"),
     },
 }
 
@@ -201,4 +203,21 @@ AWS_DEFAULT_REGION = env.str("AWS_DEFAULT_REGION", default="us-west-2")
 
 SNAPSHOT_BUCKET = env.str("SNAPSHOT_BUCKET", default=None)
 
+PROXY_AMI = env.str("PROXY_AMI", default="")
+PROXY_INSTANCE_TYPE = env.str("PROXY_INSTANCE_TYPE", default="t2.nano")
+PROXY_KEY_NAME = env.str("PROXY_KEY_NAME", default=None)
+PROXY_SGID = env.str("PROXY_SGID", default=None)
+
 #### END AWS CONFIGURATION
+
+#### PROXY CONFIGURATION
+
+PROXY_SSH_KEY = (
+    env.str("PROXY_SSH_KEY", default="").replace("\\n", "\n").encode("utf-8")
+)
+PROXY_SSH_KEY_ID = env.str("PROXY_SSH_KEY_ID", default=None)
+DIGITALOCEAN_KEY = env.str("DIGITALOCEAN_KEY", default=None)
+
+PROXY_TAG = env.str("PROXY_TAG", default=ENV)
+
+#### END PROXY_CONFIGURATION

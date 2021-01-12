@@ -1,4 +1,9 @@
 import logging
+import random
+import tempfile
+import time
+
+import paramiko
 
 from common import enums
 from uptime.check import check_site_with
@@ -9,9 +14,12 @@ from . import digitalocean
 
 logger = logging.getLogger("uptime")
 
-from app import settings
+from django.conf import settings
 
 PROXY_TYPES = [digitalocean.DigitalOceanProxy]
+
+PROXY_PORT_MIN = 2000
+PROXY_PORT_MAX = 60000
 
 
 def check():
@@ -87,3 +95,81 @@ def proxy_is_up(address: str, timeout: int = 3) -> bool:
     except Exception as e:
         logger.info(f"proxy {address} failed: {e}")
         return False
+
+
+def create_ubuntu_proxy(source, name, ip, metadata):
+    port = random.randint(PROXY_PORT_MIN, PROXY_PORT_MAX)
+
+    metadata.update(
+        {
+            "tag": settings.PROXY_TAG,
+        }
+    )
+    proxy = Proxy.objects.create(
+        source=source,
+        address=f"{ip}:{port}",
+        description=name,
+        status=enums.ProxyStatus.CREATING,
+        failure_count=0,
+        metadata=metadata,
+    )
+
+    UNITFILE = f"""[Unit]
+Description=microsocks
+After=network.target
+[Service]
+ExecStart=/root/microsocks/microsocks -p {port}
+[Install]
+WantedBy=multi-user.target
+"""
+    SETUP = [
+        f"hostname {proxy.description}",
+        f"echo {proxy.description} > /etc/hostname",
+        "apt update",
+        "apt install -y gcc make",
+        "git clone https://github.com/rofl0r/microsocks",
+        "cd microsocks && make",
+        "systemctl enable microsocks.service",
+        "systemctl start microsocks.service",
+    ]
+
+    with tempfile.NamedTemporaryFile() as tmp_key:
+        tmp_key.write(settings.PROXY_SSH_KEY)
+        tmp_key.flush()
+
+        # logger.info(f"IP is {ip}, waiting for machine to come up...")
+        # time.sleep(60)
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy)
+        while True:
+            try:
+                logger.info(f"Connecting to {ip} via SSH...")
+                ssh.connect(ip, username="root", key_filename=tmp_key.name, timeout=10)
+                break
+            except:
+                logger.info("Waiting a bit...")
+                time.sleep(5)
+
+        logger.info("Writing systemd unit...")
+        stdin_, stdout_, stderr_ = ssh.exec_command(
+            "cat >/etc/systemd/system/microsocks.service"
+        )
+        stdin_.write(UNITFILE)
+        stdin_.close()
+        stdout_.channel.recv_exit_status()
+
+        for cmd in SETUP:
+            stdin_, stdout_, stderr_ = ssh.exec_command(cmd)
+            stdout_.channel.recv_exit_status()
+            lines = stdout_.readlines()
+            logger.info(f"{cmd}: {lines}")
+
+    if not proxy_is_up(f"{ip}:{port}"):
+        logger.warning(f"new proxy {ip}:{port} does not appear to be reachable")
+        return
+
+    proxy.status = enums.ProxyStatus.UP
+    proxy.save()
+
+    logger.info(f"Configured proxy {proxy}")
