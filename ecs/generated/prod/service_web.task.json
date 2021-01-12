@@ -1,0 +1,217 @@
+{
+   "containerDefinitions": [
+      {
+         "dependsOn": [
+            {
+               "condition": "START",
+               "containerName": "datadog-agent"
+            },
+            {
+               "condition": "START",
+               "containerName": "log_router"
+            }
+         ],
+         "environment": [
+            {
+               "name": "DD_TRACE_ANALYTICS_ENABLED",
+               "value": "true"
+            },
+            {
+               "name": "DATADOG_SERVICE_NAME",
+               "value": "puptimeweb"
+            },
+            {
+               "name": "DATADOG_ENV",
+               "value": "prod"
+            },
+            {
+               "name": "DD_LOGS_INJECTION",
+               "value": "true"
+            },
+            {
+               "name": "DD_TAGS",
+               "value": "env:prod,service:puptimeweb"
+            }
+         ],
+         "essential": true,
+         "healthCheck": {
+            "command": [
+               "CMD-SHELL",
+               "/app/ops/web_health.sh || exit 1"
+            ],
+            "interval": 120,
+            "retries": 3,
+            "timeout": 15
+         },
+         "image": "nginx/nginx:latest",
+         "logConfiguration": {
+            "logDriver": "awsfirelens",
+            "options": {
+               "Host": "http-intake.logs.datadoghq.com",
+               "Name": "datadog",
+               "TLS": "on",
+               "dd_message_key": "log",
+               "dd_service": "puptimeweb",
+               "dd_source": "django",
+               "dd_tags": "env:prod",
+               "host": "http-intake.logs.datadoghq.com",
+               "provider": "ecs"
+            },
+            "secretOptions": [
+               {
+                  "name": "apikey",
+                  "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/general.datadogkey"
+               }
+            ]
+         },
+         "name": "web",
+         "portMappings": [
+            {
+               "containerPort": 8000,
+               "hostPort": 8000,
+               "protocol": "tcp"
+            }
+         ],
+         "secrets": [
+            {
+               "name": "DATABASE_URL",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.database_url"
+            },
+            {
+               "name": "DATABASE_MAX_CONNECTIONS",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.database_max_connections"
+            },
+            {
+               "name": "REDIS_URL",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.redis_url"
+            },
+            {
+               "name": "SECRET_KEY",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.secret_key"
+            },
+            {
+               "name": "SENTRY_DSN",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.sentry_dsn"
+            },
+            {
+               "name": "ALLOWED_HOSTS",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.allowed_hosts"
+            },
+            {
+               "name": "PRIMARY_ORIGIN",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.primary_origin"
+            },
+            {
+               "name": "WWW_ORIGIN",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.www_origin"
+            },
+            {
+               "name": "DD_API_KEY",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/general.datadogkey"
+            },
+            {
+               "name": "DIGITALOCEAN_KEY",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.digitalocean_key"
+            },
+            {
+               "name": "PROXY_SSH_KEY",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.proxy_ssh_key"
+            },
+            {
+               "name": "PROXY_SSH_KEY_ID",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.proxy_ssh_key_id"
+            },
+            {
+               "name": "AWS_PROXY_ROLE_ARN",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.aws_proxy_role_arn"
+            },
+            {
+               "name": "AWS_PROXY_ROLE_SESSION_NAME",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.aws_proxy_role_session_name"
+            }
+         ]
+      },
+      {
+         "dependsOn": [
+            {
+               "condition": "START",
+               "containerName": "log_router"
+            }
+         ],
+         "environment": [
+            {
+               "name": "ECS_FARGATE",
+               "value": "true"
+            },
+            {
+               "name": "DD_DOCKER_LABELS_AS_TAGS",
+               "value": "{\"spinnaker.stack\":\"spinnaker_stack\", \"spinnaker.servergroup\":\"spinnaker_servergroup\", \"spinnaker.detail\":\"spinnaker_detail\", \"spinnaker.stack\":\"env\"}"
+            },
+            {
+               "name": "DD_APM_ENABLED",
+               "value": "true"
+            },
+            {
+               "name": "DD_DOGSTATSD_NON_LOCAL_TRAFFIC",
+               "value": "true"
+            }
+         ],
+         "essential": true,
+         "image": "datadog/agent:latest",
+         "logConfiguration": {
+            "logDriver": "awsfirelens",
+            "options": {
+               "Host": "http-intake.logs.datadoghq.com",
+               "Name": "datadog",
+               "TLS": "on",
+               "dd_message_key": "log",
+               "dd_service": "turnout-datadog",
+               "dd_source": "datadog",
+               "dd_tags": "env:prod",
+               "host": "http-intake.logs.datadoghq.com",
+               "provider": "ecs"
+            },
+            "secretOptions": [
+               {
+                  "name": "apikey",
+                  "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/general.datadogkey"
+               }
+            ]
+         },
+         "name": "datadog-agent",
+         "secrets": [
+            {
+               "name": "DD_API_KEY",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/general.datadogkey"
+            }
+         ]
+      },
+      {
+         "essential": true,
+         "firelensConfiguration": {
+            "options": {
+               "enable-ecs-log-metadata": "true"
+            },
+            "type": "fluentbit"
+         },
+         "image": "amazon/aws-for-fluent-bit:latest",
+         "logConfiguration": {
+            "logDriver": "awslogs",
+            "options": {
+               "awslogs-group": "/voteamerica/ecs/turnout/prod",
+               "awslogs-region": "us-west-2",
+               "awslogs-stream-prefix": "turnout-fluentbit"
+            }
+         },
+         "name": "log_router"
+      }
+   ],
+   "cpu": "1024",
+   "executionRoleArn": "arn:aws:iam::719108811834:role/Puptime-ECS-Prod",
+   "memory": "2048",
+   "networkMode": "awsvpc",
+   "requiresCompatibilities": [
+      "FARGATE"
+   ],
+   "taskRoleArn": "arn:aws:iam::719108811834:role/Puptime-ECS-Prod-TaskRole"
+}
