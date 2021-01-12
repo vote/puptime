@@ -1,0 +1,33 @@
+dist: bionic
+language: python
+python:
+  - "3.7"
+
+env:
+  global:
+    CACHE_IMAGE: voteamerica/puptime-ci-cache
+
+before_install:
+  - touch .env
+  - docker pull $CACHE_IMAGE:latest || true
+
+install:
+  - docker-compose build
+
+before_script:
+  - docker-compose up -d
+
+script:
+  - docker-compose exec server bash -c "autoflake --remove-unused-variables --remove-all-unused-imports --ignore-init-module-imports --recursive --exclude /*/migrations/* /app/ && isort --check -m 3 --tc -w 88 --skip migrations /app/ && black --check --exclude /*/migrations/* /app/"
+  - docker-compose exec server mypy /app/
+
+notifications:
+  email: false
+
+deploy:
+  - provider: script
+    script: bash scripts/travis_deploy_tags.sh
+    on:
+      tags: true
+      all_branches: true
+      repo: vote/puptime
