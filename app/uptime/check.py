@@ -41,6 +41,8 @@ def check_all():
     random.shuffle(sites)
     for site in sites:
         check_site(drivers, site)
+    for item in drivers:
+        item[0].quit()
 
 
 def check_site(drivers, site):

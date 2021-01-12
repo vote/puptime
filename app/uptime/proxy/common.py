@@ -54,6 +54,8 @@ def test_proxies():
         check = check_site_with(driver, proxy, site)
         if not check.state_up:
             bad.append((check, proxy))
+        driver.quit()
+
     if bad:
         if len(bad) == len(ls):
             logger.warn("All proxies appear down; there is probably something wrong")
