@@ -17,3 +17,4 @@ ENV TAG=$TAG_ARG
 ENV BUILD=$BUILD_ARG
 
 EXPOSE 8000
+CMD ["/app/ops/web_launch.sh"]
