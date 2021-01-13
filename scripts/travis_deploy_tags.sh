@@ -19,5 +19,5 @@ curl https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/ \
         \"repository\":\"vote/puptime\",
         \"commit\":\"${TRAVIS_COMMIT}\"
     }],
-    \"projects\":[\"puptime\"]
+    \"projects\":[\"uptime\"]
 }"
