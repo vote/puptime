@@ -11,12 +11,24 @@ from common.aws import get_proxy_ec2_client
 from uptime.models import Proxy
 
 REGIONS = {
-    #    "us-west-1": "ami-034bf895b736be04a",
-    #    "us-west-2": "ami-089668cd321f3cf82",
-    #    "us-east-1": "ami-011899242bb902164",
+    "us-west-1": {
+        "ami": "ami-034bf895b736be04a",
+        "subnet_id": "subnet-014d9a5b",
+        "instance_type": "t3.nano",
+    },
+    "us-west-2": {
+        "ami": "ami-089668cd321f3cf82",
+        "subnet_id": "subnet-b5bb03e8",
+        "instance_type": "t3.nano",
+    },
+    #    "us-east-1": {
+    #        "ami": "ami-011899242bb902164",
+    #        "subnet_id": "subnet-845d81b5",
+    #        "instance_type": "t3.nano",
+    #    },
     "us-east-2": {
         "ami": "ami-07d5003620a5450ee",
-        "subnet_id": "subnet-02dfcd25945d6bc34",
+        "subnet_id": "subnet-82f7b7ce",
         "instance_type": "t3.nano",
     },
     #    "ca-central-1": "ami-0a20346326d3d1853",
@@ -90,7 +102,7 @@ class EC2Proxy(object):
             return
         i = response["Instances"][0]
         instance_id = i["InstanceId"]
-        logger.info(f"Created instance {instance_id}")
+        logger.info(f"Created instance {instance_id} in {region}")
 
         while True:
             logger.info("Waiting for public IP address...")

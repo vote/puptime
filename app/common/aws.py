@@ -28,15 +28,22 @@ def get_proxy_ec2_client(region):
             region_name=region,
         )
 
-    response = client.assume_role(
+    sts_client = boto3.client(
+        "sts",
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name=region,
+    )
+    response = sts_client.assume_role(
         RoleArn=settings.AWS_PROXY_ROLE_ARN,
-        RoleSessionName=settings.AWS_PROXY_ROLE_SESSION_NAME,
+        RoleSessionName=f"puptime-{settings.PROXY_TAG}",
         DurationSeconds=3600,
     )
-    assert upload.get("ResponseMetadata", {}).get("HTTPStatusCode") == 200
+    assert response.get("ResponseMetadata", {}).get("HTTPStatusCode") == 200
     return boto3.client(
         "ec2",
         aws_access_key_id=response["Credentials"]["AccessKeyId"],
         aws_secret_access_key=response["Credentials"]["SecretAccessKey"],
+        aws_session_token=response["Credentials"]["SessionToken"],
         region_name=region,
     )
