@@ -88,7 +88,7 @@ services:
       - beat
 
   selenium:
-    image: selenium/standalone-chrome:3.141.59-20200525
+    image: selenium/standalone-chrome:3.141
     ports:
       - "4444:4444"
     shm_size: '2gb'
@@ -101,23 +101,23 @@ services:
     ports:
       - "13333:3333"
 
-  ddagent:
-    image: datadog/agent
-    environment:
-      - DD_APM_ENABLED=true
-      - DD_BIND_HOST=0.0.0.0
-      - DD_LOG_LEVEL=CRITICAL
-      - DATADOG_ENV=local
-      - DATADOG_SERVICE_NAME=local
-      - DD_TAGS='env:local'
-    expose:
-      - "8125/udp"
-      - "8126"
-    ports:
-      - "8125:8125/udp"
-      - "8126:8126"
-    env_file:
-      - .env
+#  ddagent:
+#    image: datadog/agent
+#    environment:
+#      - DD_APM_ENABLED=true
+#      - DD_BIND_HOST=0.0.0.0
+#      - DD_LOG_LEVEL=CRITICAL
+#      - DATADOG_ENV=local
+#      - DATADOG_SERVICE_NAME=local
+#      - DD_TAGS='env:local'
+#    expose:
+#      - "8125/udp"
+#      - "8126"
+#    ports:
+#      - "8125:8125/udp"
+#      - "8126:8126"
+#    env_file:
+#      - .env
 
 volumes:
   pgdata_uptime:
