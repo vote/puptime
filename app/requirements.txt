@@ -27,3 +27,4 @@ kombu
 mypy
 django-stubs
 djangorestframework-stubs
+django-tables2

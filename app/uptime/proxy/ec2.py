@@ -152,6 +152,7 @@ class EC2Proxy(object):
             )
             for res in response.get("Reservations", []):
                 for i in res.get("Instances", []):
+                    i["Region"] = region
                     r[i["InstanceId"]] = i
         return r
 
@@ -189,6 +190,6 @@ class EC2Proxy(object):
 
         for instance_id, info in stray.items():
             logger.info(f"Removing stray instance {instance_id}")
-            r = cls.remove_instance(proxy.metadata["region"], instance_id)
+            r = cls.remove_instance(info["Region"], instance_id)
             logger.info(r)
         logger.info("Cleanup done")

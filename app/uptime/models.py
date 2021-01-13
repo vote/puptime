@@ -13,15 +13,17 @@ class Site(UUIDModel, TimestampModel):
         "auth.User", related_name="sites", on_delete=models.CASCADE
     )
 
-    state_up = models.BooleanField(null=True)
-    state_changed_at = models.DateTimeField(null=True)
-    last_went_down_check = models.ForeignKey(
-        "Check", null=True, on_delete=models.CASCADE, related_name="site_down"
+    up = models.BooleanField(null=True)
+    last_downtime = models.ForeignKey(
+        "Downtime", null=True, on_delete=models.CASCADE, related_name="site_last"
     )
-    last_went_up_check = models.ForeignKey(
+    last_came_up_check = models.ForeignKey(
         "Check", null=True, on_delete=models.CASCADE, related_name="site_up"
     )
-    last_tweet_at = models.DateTimeField(null=True)
+    state_changed_at = models.DateTimeField(null=True)
+
+    # state_up = models.BooleanField(null=True)
+    # last_tweet_at = models.DateTimeField(null=True)
 
     uptime_day = models.FloatField(null=True)
     uptime_week = models.FloatField(null=True)
@@ -75,7 +77,7 @@ class Site(UUIDModel, TimestampModel):
                 while ts < cutoff:
                     tup = total_up
                     tdn = total_down
-                    if check.state_up:
+                    if check.up:
                         tup += last - cutoff
                     else:
                         tdn += last - cutoff
@@ -85,7 +87,7 @@ class Site(UUIDModel, TimestampModel):
                     if not cutoffs:
                         return r
                     cutoff = now - cutoffs.pop(0)
-                if check.state_up:
+                if check.up:
                     total_up += last - ts
                 else:
                     total_down += last - ts
@@ -105,14 +107,14 @@ class Site(UUIDModel, TimestampModel):
 
 class Check(UUIDModel, TimestampModel):
     site = models.ForeignKey("Site", null=True, on_delete=models.CASCADE)
-    state_up = models.BooleanField(null=True)
+    up = models.BooleanField(null=True)
     blocked = models.BooleanField(null=True)
     ignore = models.BooleanField(null=True)
     load_time = models.FloatField(null=True)
     error = models.TextField(null=True)
     proxy = models.ForeignKey("Proxy", null=True, on_delete=models.CASCADE)
     title = models.TextField(null=True)
-    content = models.TextField(null=True)
+    content_url = models.TextField(null=True)
     snapshot_url = models.TextField(null=True)
 
     class Meta:

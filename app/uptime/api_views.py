@@ -97,7 +97,7 @@ class SiteDowntimeList(generics.ListAPIView):
 
 # filtered site list views
 class SiteDownList(generics.ListAPIView):
-    queryset = Site.objects.filter(state_up=False)
+    queryset = Site.objects.filter(up=False)
     serializer_class = SiteSerializer
     pagination_class = PaginationStyle
     authentication_classes = [BasicAuthentication]

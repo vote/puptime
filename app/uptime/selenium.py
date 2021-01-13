@@ -1,5 +1,6 @@
 import datetime
 import logging
+import random
 import uuid
 
 from selenium import webdriver
@@ -65,6 +66,9 @@ def get_drivers():
         logger.debug(f"reserve {reserve}")
 
     proxies = unused_proxies + used_proxies
+
+    # randomly shuffle remaining proxies
+    random.shuffle(proxies)
 
     # verify the proxy is responding before we try to use it
     verified = []

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "django.contrib.postgres",
     "rest_framework",
     "django_celery_results",
+    "django_tables2",
     "uptime",
 ]
 
@@ -81,7 +82,9 @@ ROOT_URLCONF = "app.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            "templates",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -188,8 +191,6 @@ LOGGING = {
 
 
 ##
-
-PROXY_TARGET = env.int("PROXY_TARGET", 3)
 
 SELENIUM_URL = env.str("SELENIUM_URL", "http://selenium:4444/wd/hub")
 SELENIUM_DRIVER_TIMEOUT = env.int("SELENIUM_DRIVER_TIMEOUT", 30)

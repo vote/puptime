@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Site Check</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+  </head>
+  <body>
+    <h1>{{object.uuid}}</h1>
+    <p>Site: {{ object.site.description }}</p>
+    <p>Time: {{ object.created_at }}</p>
+    <p>Up: {{ object.state_up }}</p>
+    <p>Blocked: {{ object.blocked }}</p>
+    <p>Source: <a href="{{ object.content_url }}">{{object.content_url}}</a></p>
+    <p>Snapshot: <a href="{{object.snapshot_url}}">{{object.snapshot_url}}</a></p>
+  </body>
+</html>

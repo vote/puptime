@@ -52,7 +52,7 @@ def test_proxies():
     for proxy in ls:
         driver = get_driver(proxy)
         check = check_site_with(driver, proxy, site)
-        if not check.state_up:
+        if not check.up:
             bad.append((check, proxy))
         driver.quit()
 

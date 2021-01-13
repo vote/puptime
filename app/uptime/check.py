@@ -50,16 +50,16 @@ def check_site(drivers, site):
     check = check_site_with_pos(drivers, 0, site)
 
     bad_proxy = False
-    if not check.state_up or check.blocked:
+    if not check.up or check.blocked:
         # try another proxy
         check2 = check_site_with_pos(drivers, 1, site)
 
-        if check2.state_up and not check2.blocked:
+        if check2.up and not check2.blocked:
             # new proxy is fine; ignore the failure
 
             # check again
             check3 = check_site_with_pos(drivers, 0, site)
-            if check3.state_up and not check3.blocked:
+            if check3.up and not check3.blocked:
                 # call it intermittent; stick with original proxy
                 check = check3
             else:
@@ -76,47 +76,33 @@ def check_site(drivers, site):
             # verify sentinel site loads
             sentinel = Site.get_sentinel_site()
             check4 = check_site_with_pos(drivers, 0, sentinel)
-            if not check4.state_up:
+            if not check4.up:
                 raise NoProxyError("cannot reach sentinel site with original proxy")
             check5 = check_site_with_pos(drivers, 1, sentinel)
-            if not check5.state_up:
+            if not check5.up:
                 raise NoProxyError("cannot reach sentinel site with backup proxy")
 
             # sentinel looks okay; do not ignore the failurex
             check.ignore = False
             check.save()
 
-    if site.state_up != check.state_up:
-        site.state_up = check.state_up
-        site.state_changed_at = check.created_at
-        if check.state_up:
-            downtime = None
-            if site.last_went_down_check:
-                downtime = Downtime.objects.filter(
-                    site=site, first_down_check__isnull=True
-                ).first()
-            if downtime:
-                print(f"downtime is {downtime}")
-                downtime.up_check = check
-                downtime.save()
-                site.last_went_up_check = check
+    if site.up != check.up:
+        site.up = check.up
+        if site.up:
+            if site.last_downtime:
+                site.last_downtime.up_check = check
+                site.last_downtime.save()
+                site.last_downtime = None
         else:
-            Downtime.objects.create(
+            site.last_downtime = Downtime.objects.create(
                 site=site,
                 first_down_check=check,
                 last_down_check=check,
             )
-            site.last_went_down_check = check
-    elif not check.state_up:
+    elif not check.up:
         # update the current downtime
-        downtime = None
-        if site.last_went_down_check:
-            downtime = Downtime.objects.filter(
-                site=site, first_down_check__isnull=True
-            ).first()
-        if downtime:
-            downtime.last_down_check = check
-            downtime.save()
+        site.last_downtime.last_down_check = check
+        site.last_downtime.save()
 
     if site.blocked != check.blocked:
         site.blocked = check.blocked
@@ -233,7 +219,7 @@ def check_site_with(driver, proxy, site):
                 ignore = True
                 # make sure we've used this proxy on this site before...
                 if SiteCheck.objects.filter(
-                    site=site, proxy=proxy, state_up=True, blocked=False
+                    site=site, proxy=proxy, up=True, blocked=False
                 ).exists():
                     error = f"Proxy is burned (page contains '{b}')"
                     burn = True
@@ -282,34 +268,49 @@ def check_site_with(driver, proxy, site):
 
     check = Check.objects.create(
         site=site,
-        state_up=up,
+        up=up,
         blocked=blocked,
         load_time=dur.total_seconds(),
         error=error,
         proxy=proxy,
         ignore=ignore,
         title=title,
-        content=content,
     )
 
-    # upload png to s3
-    filename = str(check.uuid) + ".png"
+    # upload png and html to s3
+    png_filename = str(check.uuid) + ".png"
+    html_filename = str(check.uuid) + ".html"
     upload = s3_client.put_object(
         Bucket=settings.SNAPSHOT_BUCKET,
-        Key=filename,
+        Key=png_filename,
         ContentType="image/png",
         ACL="public-read",
         Body=png,
     )
     if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
         logger.warning(
-            f"{number}: Unable to push {filename} to {settings.SNAPSHOT_BUCKET}"
+            f"{number}: Unable to push {png_filename} to {settings.SNAPSHOT_BUCKET}"
         )
     else:
         check.snapshot_url = (
-            f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{filename}"
+            f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{png_filename}"
         )
-        check.save()
+    upload = s3_client.put_object(
+        Bucket=settings.SNAPSHOT_BUCKET,
+        Key=html_filename,
+        ContentType="text/html",
+        ACL="public-read",
+        Body=content,
+    )
+    if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
+        logger.warning(
+            f"{number}: Unable to push {html_filename} to {settings.SNAPSHOT_BUCKET}"
+        )
+    else:
+        check.content_url = (
+            f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{html_filename}"
+        )
+    check.save()
 
     if burn:
         logger.info(f"BURNED PROXY: {site} ({error}) duration {dur}, {proxy}")
