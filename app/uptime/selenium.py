@@ -13,6 +13,16 @@ logger = logging.getLogger("uptime")
 from app import settings
 
 
+# These are from https://techblog.willshouse.com/2012/01/03/most-common-user-agents/
+AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36	',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
+]
+
+
 def get_driver(proxy):
     options = webdriver.ChromeOptions()
     options.add_argument(f"--proxy-server=socks5://{proxy.address}")
@@ -25,6 +35,7 @@ def get_driver(proxy):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-extensions")
     options.add_argument("--dns-prefetch-disable")
+    options.add_argument(f"--user-agent={random.choice(AGENTS)}")
     options.add_argument(
         "--disable-browser-side-navigation"
     )  # https://stackoverflow.com/a/49123152/1689770
