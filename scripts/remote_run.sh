@@ -22,19 +22,15 @@ fi
 
 echo "Account ID: $ACCOUNT_ID"
 export DATABASE_URL=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.database_url | jq '.Parameter["Value"]' -r)
-export DATABASE_MAX_CONNECTIONS=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.database_max_connections | jq '.Parameter["Value"]' -r)
 export REDIS_URL=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.redis_url | jq '.Parameter["Value"]' -r)
 export SECRET_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.secret_key | jq '.Parameter["Value"]' -r)
-export SENTRY_DSN=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.sentry_dsn | jq '.Parameter["Value"]' -r)
 export ALLOWED_HOSTS=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.allowed_hosts | jq '.Parameter["Value"]' -r)
 export PRIMARY_ORIGIN=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.primary_origin | jq '.Parameter["Value"]' -r)
-export WWW_ORIGIN=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.www_origin | jq '.Parameter["Value"]' -r)
 export DD_API_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name general.datadogkey | jq '.Parameter["Value"]' -r)
 export DIGITALOCEAN_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.digitalocean_key | jq '.Parameter["Value"]' -r)
 export PROXY_SSH_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.proxy_ssh_key | jq '.Parameter["Value"]' -r)
 export PROXY_SSH_KEY_ID=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.proxy_ssh_key_id | jq '.Parameter["Value"]' -r)
 export AWS_PROXY_ROLE_ARN=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.aws_proxy_role_arn | jq '.Parameter["Value"]' -r)
-export AWS_PROXY_ROLE_SESSION_NAME=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.aws_proxy_role_session_name | jq '.Parameter["Value"]' -r)
 
 echo "Parameters Acquired"
 
@@ -67,19 +63,15 @@ echo "Running Image $IMAGE"
 if [ "$2" ]; then
   docker run \
     -e DATABASE_URL \
-    -e DATABASE_MAX_CONNECTIONS \
     -e REDIS_URL \
     -e SECRET_KEY \
-    -e SENTRY_DSN \
     -e ALLOWED_HOSTS \
     -e PRIMARY_ORIGIN \
-    -e WWW_ORIGIN \
     -e DD_API_KEY \
     -e DIGITALOCEAN_KEY \
     -e PROXY_SSH_KEY \
     -e PROXY_SSH_KEY_ID \
     -e AWS_PROXY_ROLE_ARN \
-    -e AWS_PROXY_ROLE_SESSION_NAME \
 -e DEBUG=$DEBUG \
 -p 8000:8000 \
 $IMAGE \
@@ -87,19 +79,15 @@ $IMAGE \
 else
   docker run -i -t \
     -e DATABASE_URL \
-    -e DATABASE_MAX_CONNECTIONS \
     -e REDIS_URL \
     -e SECRET_KEY \
-    -e SENTRY_DSN \
     -e ALLOWED_HOSTS \
     -e PRIMARY_ORIGIN \
-    -e WWW_ORIGIN \
     -e DD_API_KEY \
     -e DIGITALOCEAN_KEY \
     -e PROXY_SSH_KEY \
     -e PROXY_SSH_KEY_ID \
     -e AWS_PROXY_ROLE_ARN \
-    -e AWS_PROXY_ROLE_SESSION_NAME \
 -e DEBUG=$DEBUG \
 -p 8000:8000 \
 $IMAGE \

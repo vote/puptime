@@ -74,10 +74,6 @@
                "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.database_url"
             },
             {
-               "name": "DATABASE_MAX_CONNECTIONS",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.database_max_connections"
-            },
-            {
                "name": "REDIS_URL",
                "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.redis_url"
             },
@@ -86,20 +82,12 @@
                "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.secret_key"
             },
             {
-               "name": "SENTRY_DSN",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.sentry_dsn"
-            },
-            {
                "name": "ALLOWED_HOSTS",
                "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.allowed_hosts"
             },
             {
                "name": "PRIMARY_ORIGIN",
                "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.primary_origin"
-            },
-            {
-               "name": "WWW_ORIGIN",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.www_origin"
             },
             {
                "name": "DD_API_KEY",
@@ -120,10 +108,6 @@
             {
                "name": "AWS_PROXY_ROLE_ARN",
                "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.aws_proxy_role_arn"
-            },
-            {
-               "name": "AWS_PROXY_ROLE_SESSION_NAME",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.prod.aws_proxy_role_session_name"
             }
          ]
       },

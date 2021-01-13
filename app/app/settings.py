@@ -26,8 +26,10 @@ ENV = env.str("ENV", default="dev")
 SECRET_KEY = env.str("SECRET_KEY", default="SET_THIS_KEY")
 DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default="localhost")
+PRIMARY_ORIGIN = env.str("PRIMARY_ORIGIN", default="http://localhost")
 
-# CELERY #########################
+
+### CELERY #########################
 
 CELERY_BROKER_URL = env.str("REDIS_URL", default="redis://redis:6379")
 CELERY_RESULT_BACKEND = "django-db"
@@ -210,6 +212,7 @@ SNAPSHOT_BUCKET = env.str("SNAPSHOT_BUCKET", default=None)
 AWS_PROXY_KEY_NAME = env.str("AWS_PROXY_KEY_NAME", default="uptime-proxy")
 
 #### END AWS CONFIGURATION
+
 
 #### PROXY CONFIGURATION
 
