@@ -11,7 +11,7 @@ from common import enums
 from common.aws import s3_client
 from uptime.selenium import get_driver, get_drivers, load_site, test_driver
 
-from .models import Check, Downtime, Site
+from .models import Check, Site
 
 logger = logging.getLogger("uptime")
 
@@ -86,32 +86,15 @@ def check_site(drivers, site):
             # go with the first failure
             check = failures[0]
 
-    if check.status != site.status:
-        if check.status == enums.CheckStatus.DOWN:
-            site.last_downtime = Downtime.objects.create(
-                site=site,
-                first_down_check=failures[0],
-                last_down_check=failures[-1],
-            )
-        elif check.status == enums.CheckStatus.UP and site.last_downtime:
-            site.last_downtime.up_check = check
-            site.last_downtime.save()
-            site.last_downtime = None
-
-        if site.status == enums.CheckStatus.BLOCKED:
-            site.last_went_unblocked_check = check
-        if check.status == enums.CheckStatus.BLOCKED:
-            site.last_went_blocked_check = check
-
-        site.status = check.status
-        site.status_changed_at = check.created_at
-
-    elif check.status == enums.CheckStatus.DOWN:
-        # update the current downtime
-        if site.last_downtime:
-            site.last_downtime.last_down_check = check
-            site.last_downtime.save()
-
+    if check.status == enums.CheckStatus.DOWN:
+        # use two of our down checks so that we start with a non-zero-length downtime
+        site.add_check(failures[0])
+        if len(failures) > 1:
+            site.add_check(failures[-1])
+    else:
+        site.add_check(check)
+    if site.last_downtime:
+        site.last_downtime.save()
     site.calc_uptimes()
     site.save()
 

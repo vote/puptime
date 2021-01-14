@@ -40,11 +40,47 @@ class Site(UUIDModel, TimestampModel):
     def __str__(self):
         return f"Site {self.uuid} - {self.url}"
 
-    @classmethod
-    def get_sentinel_site(cls):
-        sites = Site.objects.filter(description="sentinel")
-        assert sites
-        return sites[0]
+    def add_check(self, check):
+        if check.status != self.status:
+            if check.status == enums.CheckStatus.DOWN:
+                self.last_downtime = Downtime.objects.create(
+                    site=self,
+                    first_down_check=check,
+                    last_down_check=check,
+                )
+            elif check.status == enums.CheckStatus.UP and self.last_downtime:
+                self.last_downtime.up_check = check
+                self.last_downtime.save()
+                self.last_downtime = None
+
+            if self.status == enums.CheckStatus.BLOCKED:
+                self.last_went_unblocked_check = check
+            if check.status == enums.CheckStatus.BLOCKED:
+                self.last_went_blocked_check = check
+
+            self.status = check.status
+            self.status_changed_at = check.created_at
+
+        elif check.status == enums.CheckStatus.DOWN:
+            # update the current downtime
+            if self.last_downtime:
+                self.last_downtime.last_down_check = check
+
+    def rebuild_downtimes(self):
+        # reset
+        self.status = enums.CheckStatus.UP
+        self.last_downtime = None
+        Downtime.objects.filter(site=self).delete()
+
+        # re-ingest checks
+        for check in Check.objects.filter(site=self, ignore=False).order_by(
+            "created_at"
+        ):
+            self.add_check(check)
+        if self.last_downtime:
+            self.last_downtime.save()
+        self.calc_uptimes()
+        self.save()
 
     def calc_uptimes(self):
         r = self.do_calc_uptime(
