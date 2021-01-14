@@ -25,6 +25,12 @@ class SiteDowntimeListView(SingleTableView):
     def get_queryset(self):
         return Downtime.objects.filter(site_id=self.kwargs["pk"])
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = Site.objects.get(pk=self.kwargs["pk"])
+        logger.info(context)
+        return context
+
 
 class SiteCheckListView(SingleTableView):
     model = Check
@@ -34,12 +40,25 @@ class SiteCheckListView(SingleTableView):
     def get_queryset(self):
         return Check.objects.filter(site_id=self.kwargs["pk"])
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = Site.objects.get(pk=self.kwargs["pk"])
+        return context
+
 
 class CheckView(DetailView):
     template_name = "uptime/check.html"
     model = Check
 
 
+class DowntimeListView(SingleTableView):
+    model = Downtime
+    template_name = "uptime/downtimes.html"
+    table_class = DowntimeTable
+
+    def get_queryset(self):
+        return Downtime.objects.all()
+
+
 def test_nonce_view(request, nonce):
-    logger.info(request.headers)
     return HttpResponse(nonce)

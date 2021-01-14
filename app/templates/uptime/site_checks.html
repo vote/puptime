@@ -6,7 +6,9 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
   </head>
   <body>
-    <h1>Site Checks</h1>
+    <h1><a href="/sites/">Sites</a> > {{ object.description }}</h1>
+    <p><a target="_blank" href="{{ object.url }}">{{ object.url }}</a></p>
+    <p><a href="../downtimes/">Downtimes</a> | Checks</p>
     {% render_table table %}
   </body>
 </html>

@@ -42,9 +42,9 @@ class SiteTable(tables.Table):
         return format_html(
             " | ".join(
                 [
-                    f'<a href="{record.url}">Visit</a>',
-                    f'<a href="/sites/{record.uuid}/checks/">Checks</a>',
+                    f'<a target="_blank" href="{record.url}">Visit</a>',
                     f'<a href="/sites/{record.uuid}/downtimes/">Downtimes</a>',
+                    f'<a href="/sites/{record.uuid}/checks/">Checks</a>',
                 ]
             )
         )
@@ -113,8 +113,7 @@ class CheckTable(tables.Table):
         template_name = "django_tables2/bootstrap.html"
         fields = (
             "created_at",
-            "up",
-            "blocked",
+            "status",
             "ignore",
             "load_time",
             "proxy",
