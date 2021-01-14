@@ -167,6 +167,11 @@ def classify_check(title: str, content: str) -> Tuple[enums.CheckStatus, str]:
         if s in content:
             return enums.CheckStatus.BLOCKED, f"page contains block string '{s}'"
 
+    BLOCK_TITLE_STRINGS = ["Please Contact Us"]
+    for s in BLOCK_TITLE_STRINGS:
+        if s.lower() == title.lower():
+            return enums.CheckStatus.BLOCKED, f"page title contains block string '{s}'"
+
     DOWN_TITLE_STRINGS = ["404", "not found", "error"]
     for s in DOWN_TITLE_STRINGS:
         if s in title.lower():
