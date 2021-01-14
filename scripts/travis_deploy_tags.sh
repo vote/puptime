@@ -7,7 +7,7 @@ docker build --build-arg TAG_ARG=${TRAVIS_TAG} --build-arg BUILD_ARG=${TRAVIS_BU
 docker tag puptime:latest 719108811834.dkr.ecr.us-west-2.amazonaws.com/puptime:${TRAVIS_TAG}
 docker push 719108811834.dkr.ecr.us-west-2.amazonaws.com/puptime:${TRAVIS_TAG}
 docker tag puptime:latest public.ecr.aws/e6b7u9l0/puptime:${TRAVIS_TAG}
-eval $(aws ecr get-login --no-include-email --region us-east-1)
+eval $(aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/e6b7u9l0/puptime)
 docker push public.ecr.aws/e6b7u9l0/puptime:${TRAVIS_TAG}
 
 
