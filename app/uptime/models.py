@@ -178,24 +178,6 @@ class Check(UUIDModel, TimestampModel):
         ordering = ["-created_at"]
 
 
-class Classifier(UUIDModel, TimestampModel):
-    name = models.TextField(null=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-
-class ClassifierPattern(UUIDModel, TimestampModel):
-    classifier = models.ForeignKey("Classifier", on_delete=models.CASCADE)
-    pattern_type = models.TextField(
-        choices=[(tag.name, tag.value) for tag in enums.ClassifierPatternType]
-    )
-    pattern = models.TextField()
-
-    class Meta:
-        ordering = ["created_at"]
-
-
 class Downtime(UUIDModel, TimestampModel):
     site = models.ForeignKey("Site", null=True, on_delete=models.CASCADE)
     first_down_check = models.ForeignKey(
