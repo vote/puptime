@@ -229,38 +229,40 @@ def check_site_with(driver, proxy, site):
     )
 
     # upload png and html to s3
-    png_filename = str(check.uuid) + ".png"
-    html_filename = str(check.uuid) + ".html"
-    upload = s3_client.put_object(
-        Bucket=settings.SNAPSHOT_BUCKET,
-        Key=png_filename,
-        ContentType="image/png",
-        ACL="public-read",
-        Body=png,
-    )
-    if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
-        logger.warning(
-            f"{number}: Unable to push {png_filename} to {settings.SNAPSHOT_BUCKET}"
+    if png:
+        png_filename = str(check.uuid) + ".png"
+        upload = s3_client.put_object(
+            Bucket=settings.SNAPSHOT_BUCKET,
+            Key=png_filename,
+            ContentType="image/png",
+            ACL="public-read",
+            Body=png,
         )
-    else:
-        check.snapshot_url = (
-            f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{png_filename}"
+        if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
+            logger.warning(
+                f"{number}: Unable to push {png_filename} to {settings.SNAPSHOT_BUCKET}"
+            )
+        else:
+            check.snapshot_url = (
+                f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{png_filename}"
+            )
+    if content:
+        html_filename = str(check.uuid) + ".html"
+        upload = s3_client.put_object(
+            Bucket=settings.SNAPSHOT_BUCKET,
+            Key=html_filename,
+            ContentType="text/html",
+            ACL="public-read",
+            Body=content,
         )
-    upload = s3_client.put_object(
-        Bucket=settings.SNAPSHOT_BUCKET,
-        Key=html_filename,
-        ContentType="text/html",
-        ACL="public-read",
-        Body=content,
-    )
-    if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
-        logger.warning(
-            f"{number}: Unable to push {html_filename} to {settings.SNAPSHOT_BUCKET}"
-        )
-    else:
-        check.content_url = (
-            f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{html_filename}"
-        )
+        if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
+            logger.warning(
+                f"{number}: Unable to push {html_filename} to {settings.SNAPSHOT_BUCKET}"
+            )
+        else:
+            check.content_url = (
+                f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{html_filename}"
+            )
     check.save()
 
     logger.info(f"{status}: {site} ({error}) duration {dur}, {proxy}")

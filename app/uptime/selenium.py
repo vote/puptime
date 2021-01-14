@@ -135,7 +135,7 @@ def load_site(driver, url):
     png = None
     before = datetime.datetime.utcnow()
     try:
-        driver.get(site.url)
+        driver.get(url)
         title = driver.title
         content = driver.page_source
         png = driver.get_screenshot_as_png()
