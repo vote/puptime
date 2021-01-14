@@ -223,6 +223,6 @@ DIGITALOCEAN_KEY = env.str("DIGITALOCEAN_KEY", default=None)
 
 PROXY_TAG = env.str("PROXY_TAG", default=ENV)
 
-MAX_PROXY_AGE_HOURS = env.int("MAX_PROXY_AGE_HOURS", default=12)
+MAX_PROXY_AGE_HOURS = env.int("MAX_PROXY_AGE_HOURS", default=2)
 
 #### END PROXY_CONFIGURATION
