@@ -26,7 +26,7 @@ ENV = env.str("ENV", default="dev")
 SECRET_KEY = env.str("SECRET_KEY", default="SET_THIS_KEY")
 DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default="localhost")
-PRIMARY_ORIGIN = env.str("PRIMARY_ORIGIN", default="http://localhost")
+PRIMARY_ORIGIN = env.str("PRIMARY_ORIGIN", default="http://localhost:9901")
 
 
 ### CELERY #########################
@@ -49,8 +49,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     "check-all": {
         "task": "uptime.tasks.check_all",
-        #        "schedule": crontab(minute=f"*/5"),
-        "schedule": crontab(minute=0, hour="*"),
+        "schedule": crontab(minute=f"*/15"),
     },
 }
 
@@ -223,5 +222,7 @@ PROXY_SSH_KEY_ID = env.str("PROXY_SSH_KEY_ID", default=None)
 DIGITALOCEAN_KEY = env.str("DIGITALOCEAN_KEY", default=None)
 
 PROXY_TAG = env.str("PROXY_TAG", default=ENV)
+
+MAX_PROXY_AGE_HOURS = env.int("MAX_PROXY_AGE_HOURS", default=12)
 
 #### END PROXY_CONFIGURATION

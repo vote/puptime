@@ -1,3 +1,4 @@
+pysocks
 argh
 autoflake
 black

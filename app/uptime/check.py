@@ -3,16 +3,13 @@ import logging
 import random
 from typing import Tuple
 
+import requests
 from django.conf import settings
-from selenium.common.exceptions import (
-    RemoteDriverServerException,
-    SessionNotCreatedException,
-    WebDriverException,
-)
+from selenium.common.exceptions import WebDriverException
 
 from common import enums
 from common.aws import s3_client
-from uptime.selenium import get_driver, get_drivers, test_driver, load_site
+from uptime.selenium import get_driver, get_drivers, load_site, test_driver
 
 from .models import Check, Downtime, Site
 
@@ -190,7 +187,7 @@ def classify_check(title: str, content: str) -> Tuple[enums.CheckStatus, str]:
     ]
     lower_content = content.lower()
     for s in BODY_STRINGS:
-        if s in lower_content:
+        if s.lower() in lower_content:
             return enums.CheckStatus.UP, None
 
     return enums.CheckStatus.DOWN, f"page does not contain required string"
@@ -199,19 +196,54 @@ def classify_check(title: str, content: str) -> Tuple[enums.CheckStatus, str]:
 def check_site_with(driver, proxy, site):
     logger.debug(f"Checking {site} with {proxy}")
 
-    # first verify the proxy works
-    if not test_driver(driver):
-        raise StaleProxyError(f"proxy {proxy} cannot reach sentinel")
+    # headless chrome (and firefox) can't handle PDFs inline
+    if site.url.endswith(".pdf"):
+        # use requests to fetch PDF via the proxy
+        reason = None
+        timeout = None
+        title = ""
+        content = ""
+        png = None
+        before = datetime.datetime.utcnow()
+        try:
+            response = requests.get(
+                site.url,
+                proxies={
+                    site.url.split(":")[0]: f"socks5://{proxy.address}",
+                },
+                timeout=5,
+            )
 
-    before = datetime.datetime.utcnow()
-    error, timeout, title, content, png = load_site(driver, site.url)
-    after = datetime.datetime.utcnow()
-    dur = after - before
+            if response.headers["content-type"] == "application/pdf":
+                status = enums.CheckStatus.UP
+            else:
+                status = enums.CheckStatus.DOWN
+                content = response.content
+                reason = f"content-type is '{response.headers['content-type']}', not expected 'application/pdf'"
+        except Exception as e:
+            status = enums.CheckStatus.DOWN
+            reason = str(e)
+        after = datetime.datetime.utcnow()
+        dur = after - before
+    else:
+        # first verify the proxy works
+        if not test_driver(driver):
+            raise StaleProxyError(f"proxy {proxy} cannot reach sentinel")
 
-    status, reason = classify_check(title, content)
+        # check site
+        before = datetime.datetime.utcnow()
+        error, timeout, title, content, png = load_site(driver, site.url)
+        after = datetime.datetime.utcnow()
+        dur = after - before
 
-    if timeout and status == enums.CheckStatus.DOWN:
-        reason = timeout
+        if error:
+            status = enums.CheckStatus.DOWN
+            reason = error
+        else:
+            status, reason = classify_check(title, content)
+
+        if timeout and status == enums.CheckStatus.DOWN:
+            reason = timeout
 
     # Important: we ignore non-UP checks until we have confirmed the result
     ignore = False
@@ -265,10 +297,10 @@ def check_site_with(driver, proxy, site):
             )
     check.save()
 
-    logger.info(f"{status}: {site} ({error}) duration {dur}, {proxy}")
+    logger.info(f"{status}: {site} ({reason}) duration {dur}, {proxy}")
 
     if status == enums.CheckStatus.BLOCKED:
-        logger.info(f"BURNED PROXY: {site} ({error}) duration {dur}, {proxy}")
+        logger.info(f"BURNED PROXY: {site} ({reason}) duration {dur}, {proxy}")
         proxy.failure_count += 1
         proxy.state = enums.ProxyStatus.BURNED
         proxy.save()

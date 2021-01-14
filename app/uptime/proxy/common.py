@@ -1,9 +1,11 @@
+import datetime
 import logging
 import random
 import tempfile
 import time
 
 import paramiko
+from django.utils import timezone
 
 from common import enums
 from uptime.models import Proxy
@@ -38,6 +40,20 @@ def check():
 
 def cleanup():
     logger.info("Cleaning up proxies")
+
+    # remove oldest proxy?
+    oldest = (
+        Proxy.objects.filter(status=enums.ProxyStatus.UP).order_by("created_at").first()
+    )
+    if oldest:
+        now = timezone.now()
+        if now - oldest.created_at > datetime.timedelta(
+            hours=settings.MAX_PROXY_AGE_HOURS
+        ):
+            logger.info(f"Marking oldest {oldest} DOWN")
+            oldest.status = enums.ProxyStatus.DOWN
+            oldest.save()
+
     for source, info in PROXY_TYPES.items():
         cls = info["cls"]
         cls.cleanup()

@@ -133,7 +133,7 @@ def load_site(driver, url):
     title = ""
     content = ""
     png = None
-    before = datetime.datetime.utcnow()
+
     try:
         driver.get(url)
         title = driver.title
