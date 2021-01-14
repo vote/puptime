@@ -67,9 +67,11 @@ INSTALLED_APPS = [
     "django_celery_results",
     "django_tables2",
     "uptime",
+    "django_alive",
 ]
 
 MIDDLEWARE = [
+    "django_alive.middleware.healthcheck_bypass_host_check",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -225,3 +227,12 @@ DIGITALOCEAN_KEY = env.str("DIGITALOCEAN_KEY", default=None)
 PROXY_TAG = env.str("PROXY_TAG", default=ENV)
 
 #### END PROXY_CONFIGURATION
+
+
+#### DJANGO-ALIVE CONFIGURATION
+
+ALIVE_CHECKS = {
+    "django_alive.checks.check_migrations": {},
+}
+
+#### END ALIVE CONFIGURATION

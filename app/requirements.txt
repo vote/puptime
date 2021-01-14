@@ -34,3 +34,4 @@ django-db-geventpool==3.2.2
 ddtrace==0.45.*
 datadog==0.39.*
 ipython==7.10.*
+django-alive
