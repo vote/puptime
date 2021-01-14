@@ -49,7 +49,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     "check-all": {
         "task": "uptime.tasks.check_all",
-        "schedule": crontab(minute=f"*/15"),
+        "schedule": crontab(minute=f"*/5"),
     },
 }
 

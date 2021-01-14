@@ -40,6 +40,29 @@ class Site(UUIDModel, TimestampModel):
     def __str__(self):
         return f"Site {self.uuid} - {self.url}"
 
+    def get_check_interval(self):
+        if self.status in (enums.CheckStatus.BLOCKED, enums.CheckStatus.DOWN):
+            # For DOWN and BLOCKED sites, do some exponential backoff (with min/max)
+            last_checks = Check.objects.filter(site=self, ignore=False).order_by(
+                "-created_at"
+            )[0:2]
+            if self.status == enums.CheckStatus.BLOCKED:
+                # back off pretty aggressively
+                MULT = 0.33
+                MIN = 15 * 60
+                MAX = 24 * 60 * 60
+            else:
+                MULT = 0.05
+                MIN = 1 * 60
+                MAX = 15 * 60
+            if len(last_checks) == 2:
+                duration = last_checks[0].created_at - last_checks[1].created_at
+                return min(max(duration.total_seconds() * MULT, MIN), MAX)
+            return MIN
+
+        # default for up sites
+        return 15 * 60
+
     def add_check(self, check):
         if check.status != self.status:
             if check.status == enums.CheckStatus.DOWN:

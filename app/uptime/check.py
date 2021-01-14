@@ -5,6 +5,7 @@ from typing import Tuple
 
 import requests
 from django.conf import settings
+from django.utils import timezone
 from selenium.common.exceptions import WebDriverException
 
 from common import enums
@@ -40,6 +41,17 @@ def check_all():
     while sites:
         site = sites.pop()
         try:
+            last_check = (
+                Check.objects.filter(site=site, ignore=False)
+                .order_by("-created_at")
+                .first()
+            )
+            if last_check:
+                wait = datetime.timedelta(seconds=site.get_check_interval())
+                been = timezone.now() - last_check.created_at
+                if been < wait:
+                    logger.info(f"Not time to check {site}: been {been}, wait {wait}")
+                    continue
             check_site(drivers, site)
         except StaleProxyError:
             logger.info("Refreshing proxies")
