@@ -11,6 +11,9 @@
     <p>Up: {{ object.state_up }}</p>
     <p>Blocked: {{ object.blocked }}</p>
     <p>Source: <a href="{{ object.content_url }}">{{object.content_url}}</a></p>
-    <p>Snapshot: <a href="{{object.snapshot_url}}">{{object.snapshot_url}}</a></p>
+    <p>Snapshot: <a href="{{object.snapshot_url}}">{{object.snapshot_url}}</a>
+      <br>
+      <img src="{{object.snapshot_url}}" border=1>
+    </p>
   </body>
 </html>

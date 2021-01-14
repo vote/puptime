@@ -13,25 +13,20 @@ class Site(UUIDModel, TimestampModel):
         "auth.User", related_name="sites", on_delete=models.CASCADE
     )
 
-    up = models.BooleanField(null=True)
+    status = models.TextField(
+        null=True, choices=[(tag.name, tag.value) for tag in enums.CheckStatus]
+    )
+    status_changed_at = models.DateTimeField(null=True)
+
     last_downtime = models.ForeignKey(
         "Downtime", null=True, on_delete=models.CASCADE, related_name="site_last"
     )
-    last_came_up_check = models.ForeignKey(
-        "Check", null=True, on_delete=models.CASCADE, related_name="site_up"
-    )
-    state_changed_at = models.DateTimeField(null=True)
-
-    # state_up = models.BooleanField(null=True)
-    # last_tweet_at = models.DateTimeField(null=True)
 
     uptime_day = models.FloatField(null=True)
     uptime_week = models.FloatField(null=True)
     uptime_month = models.FloatField(null=True)
     uptime_quarter = models.FloatField(null=True)
 
-    blocked = models.BooleanField(null=True)
-    blocked_changed_at = models.DateTimeField(null=True)
     last_went_blocked_check = models.ForeignKey(
         "Check", null=True, on_delete=models.CASCADE, related_name="site_blocked"
     )
@@ -77,7 +72,7 @@ class Site(UUIDModel, TimestampModel):
                 while ts < cutoff:
                     tup = total_up
                     tdn = total_down
-                    if check.up:
+                    if check.status == enums.CheckStatus.UP:
                         tup += last - cutoff
                     else:
                         tdn += last - cutoff
@@ -87,7 +82,7 @@ class Site(UUIDModel, TimestampModel):
                     if not cutoffs:
                         return r
                     cutoff = now - cutoffs.pop(0)
-                if check.up:
+                if check.status == enums.CheckStatus.UP:
                     total_up += last - ts
                 else:
                     total_down += last - ts
@@ -107,6 +102,9 @@ class Site(UUIDModel, TimestampModel):
 
 class Check(UUIDModel, TimestampModel):
     site = models.ForeignKey("Site", null=True, on_delete=models.CASCADE)
+    status = models.TextField(
+        null=True, choices=[(tag.name, tag.value) for tag in enums.CheckStatus]
+    )
     up = models.BooleanField(null=True)
     blocked = models.BooleanField(null=True)
     ignore = models.BooleanField(null=True)

@@ -6,9 +6,8 @@ import time
 import paramiko
 
 from common import enums
-from uptime.check import check_site_with
-from uptime.models import Proxy, Site
-from uptime.selenium import get_driver
+from uptime.models import Proxy
+from uptime.selenium import get_driver, test_driver
 
 from . import digitalocean, ec2
 
@@ -19,11 +18,11 @@ from django.conf import settings
 PROXY_TYPES = {
     "digitalocean": {
         "cls": digitalocean.DigitalOceanProxy,
-        "target": 4,
+        "target": 0,
     },
     "ec2": {
         "cls": ec2.EC2Proxy,
-        "target": 3,
+        "target": 6,
     },
 }
 
@@ -46,23 +45,21 @@ def cleanup():
 
 def test_proxies():
     ls = Proxy.objects.filter(status=enums.ProxyStatus.UP)
-    site = Site.get_sentinel_site()
-    logger.info(f"Testing {len(ls)} UP proxies against sentinel {site}")
+    logger.info(f"Testing {len(ls)} UP proxies")
     bad = []
     for proxy in ls:
         driver = get_driver(proxy)
-        check = check_site_with(driver, proxy, site)
-        if not check.up:
-            bad.append((check, proxy))
+        if not test_driver(driver):
+            bad.append(proxy)
         driver.quit()
 
     if bad:
         if len(bad) == len(ls):
             logger.warn("All proxies appear down; there is probably something wrong")
         else:
-            for check, proxy in bad:
+            for proxy in bad:
                 logger.info(
-                    f"Marking {proxy} BURNED for failing to reach sentinel {site}"
+                    f"Marking {proxy} BURNED for failing to reach sentinel site"
                 )
                 proxy.status = enums.ProxyStatus.BURNED
                 proxy.save()

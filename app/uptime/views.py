@@ -1,8 +1,13 @@
+import logging
+
+from django.http import HttpResponse
 from django.views.generic.detail import DetailView
 from django_tables2 import SingleTableView
 
 from .models import Check, Downtime, Site
 from .tables import CheckTable, DowntimeTable, SiteTable
+
+logger = logging.getLogger("uptime")
 
 
 class SiteListView(SingleTableView):
@@ -33,3 +38,8 @@ class SiteCheckListView(SingleTableView):
 class CheckView(DetailView):
     template_name = "uptime/check.html"
     model = Check
+
+
+def test_nonce_view(request, nonce):
+    logger.info(request.headers)
+    return HttpResponse(nonce)
