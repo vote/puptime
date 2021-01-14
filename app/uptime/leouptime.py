@@ -6,7 +6,7 @@ import requests
 from common import enums
 
 from .check import classify_check
-from .models import Check, Proxy, Site
+from .models import Check, Content, Proxy, Site
 
 logger = logging.getLogger("uptime")
 
@@ -25,11 +25,19 @@ def import_leouptime(owner_id):
 
     for url, info in sites.items():
         logger.info(url)
-        site = Site.objects.create(
-            url=url,
-            description=info["description"],  # turnout will adjust this
-            owner_id=owner_id,
-        )
+        site = Site.objects.filter(url=url).first()
+        if site:
+            if site.status:
+                logger.info("  has status, skipping")
+                continue
+            logger.info("  wiping old checks")
+            Check.objects.filter(site=site).delete()
+        else:
+            site = Site.objects.create(
+                url=url,
+                description=info["description"],  # turnout will adjust this
+                owner_id=owner_id,
+            )
 
         nexturl = (
             f"https://api.voteamerica.com/v1/leouptime/sites/{info['uuid']}/checks/"
@@ -54,8 +62,11 @@ def import_leouptime(owner_id):
                     error=error,
                     load_time=i["load_time"],
                     proxy=proxy,
-                    title=i["title"],
                     ignore=i["ignore"],
+                    content=Content.objects.create(
+                        title=i["title"],
+                        content=i["content"],
+                    ),
                 )
                 check.created_at = dateutil.parser.isoparse(i["created_at"])
                 check.save()

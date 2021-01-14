@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 
 from common import enums
@@ -107,56 +109,65 @@ class Site(UUIDModel, TimestampModel):
 
     def calc_uptimes(self):
         r = self.do_calc_uptime(
-            [3600 * 24, 3600 * 24 * 7, 3600 * 24 * 30, 3600 * 24 * 90]
+            [
+                datetime.timedelta(days=1),
+                datetime.timedelta(days=7),
+                datetime.timedelta(days=30),
+                datetime.timedelta(days=91),
+                #            datetime.timedelta(years=1),
+            ]
         )
         # print(r)
         (self.uptime_day, self.uptime_week, self.uptime_month, self.uptime_quarter) = r
 
     def do_calc_uptime(self, cutoffs):
-        now = None
-        last = None
-        total_up = 0
+        now = (
+            Check.objects.filter(site=self, ignore=False)
+            .order_by("-created_at")
+            .first()
+            .created_at
+        )
+        period = cutoffs.pop(0)
+        cutoff = now - period
         total_down = 0
-        cutoff = 0
         r = []
-        for check in Check.objects.filter(site=self, ignore=False).order_by(
-            "-created_at"
-        ):
-            ts = check.created_at.timestamp()
-            if not last:
-                now = ts
-                cutoff = now - cutoffs.pop(0)
-            else:
-                assert cutoff < last
-                while ts < cutoff:
-                    tup = total_up
-                    tdn = total_down
-                    if check.status == enums.CheckStatus.UP:
-                        tup += last - cutoff
-                    else:
-                        tdn += last - cutoff
-                    #                    print('cutoff %d  tup %d, tdn %d,  sum %d' % (cutoff, tup, tdn, tup+tdn))
-                    assert tup + tdn == now - cutoff
-                    r.append(float(tup) / float(tup + tdn))
-                    if not cutoffs:
-                        return r
-                    cutoff = now - cutoffs.pop(0)
-                if check.status == enums.CheckStatus.UP:
-                    total_up += last - ts
-                else:
-                    total_down += last - ts
-            #                print('cutoff %s  tup %d, tdn %d' % (cutoff, total_up, total_down))
-            last = ts
+        for downtime in Downtime.objects.filter(site=self).order_by("-created_at"):
+            start = downtime.first_down_check.created_at
+            end = (
+                downtime.last_down_check.created_at if downtime.last_down_check else now
+            )
+            # print(f"downtime {start} to {end}")
 
-        # we assume up for pre-history
-        assert cutoff < last
+            # complete period(s) ending after this downtime
+            while cutoff >= end:
+                # print(f" period {period} cutoff {cutoff} fully after")
+                r.append(1.0 - total_down / period.total_seconds())
+                if not cutoffs:
+                    return r
+                period = cutoffs.pop(0)
+                cutoff = now - period
+
+            # complete period(s) we overlap with
+            while cutoff >= start:
+                # print(f" period {period} cutoff {cutoff} partially after")
+                period_down = total_down + (end - cutoff).total_seconds()
+                r.append(1.0 - period_down / period.total_seconds())
+                if not cutoffs:
+                    return r
+                period = cutoffs.pop(0)
+                cutoff = now - period
+
+            # this downtime is now entirely within the current period
+            total_down += (end - start).total_seconds()
+            # print(f" total down now {total_down}")
+
+        # we assume site was "up" in pre-history
         while True:
-            total_up += last - cutoff
-            last = cutoff
-            r.append(float(total_up) / float(total_up + total_down))
+            r.append(1.0 - total_down / period.total_seconds())
             if not cutoffs:
                 return r
-            cutoff = now - cutoffs.pop(0)
+            period = cutoffs.pop(0)
+            cutoff = now - period
 
 
 class Check(UUIDModel, TimestampModel):
@@ -170,12 +181,16 @@ class Check(UUIDModel, TimestampModel):
     load_time = models.FloatField(null=True)
     error = models.TextField(null=True)
     proxy = models.ForeignKey("Proxy", null=True, on_delete=models.CASCADE)
-    title = models.TextField(null=True)
-    content_url = models.TextField(null=True)
-    snapshot_url = models.TextField(null=True)
+    content = models.ForeignKey("Content", null=True, on_delete=models.CASCADE)
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class Content(UUIDModel, TimestampModel):
+    title = models.TextField(null=True)
+    content = models.TextField(null=True)
+    snapshot_url = models.TextField(null=True)
 
 
 class Downtime(UUIDModel, TimestampModel):

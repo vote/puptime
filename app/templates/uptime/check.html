@@ -9,10 +9,14 @@
     <p>Site: {{ object.site.description }}</p>
     <p>Time: {{ object.created_at }}</p>
     <p>Current status: {{ object.status }}</p>
-    <p>Source: <a href="{{ object.content_url }}">{{object.content_url}}</a></p>
-    <p>Snapshot: <a href="{{object.snapshot_url}}">{{object.snapshot_url}}</a>
+    <hr>
+    <p>Snapshot: <a href="{{object.content.snapshot_url}}">{{object.content.snapshot_url}}</a>
       <br>
-      <img src="{{object.snapshot_url}}" border=1>
+      <img src="{{object.content.snapshot_url}}" border=1 align=center>
+    </p>
+    <hr>
+    <p>Source:<br>
+      <pre>{{clean_content}}</pre>
     </p>
   </body>
 </html>

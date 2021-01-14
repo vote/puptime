@@ -94,16 +94,14 @@ class DowntimeTable(tables.Table):
 
 class CheckTable(tables.Table):
     content = tables.Column(empty_values=())
-    snapshot = tables.Column(empty_values=())
 
     def render_created_at(self, record, value):
         return format_html(f'<a href="/checks/{record.uuid}/">{value}</a>')
 
     def render_content(self, record):
-        return format_html(f'<a href="{record.content_url}">Content</a>')
-
-    def render_snapshot(self, record):
-        return format_html(f'<a href="{record.snapshot_url}">Snapshot</a>')
+        return format_html(
+            f'<a href="{record.content.snapshot_url if record.content else ""}">Snapshot</a>'
+        )
 
     def render_proxy(self, value):
         return value.uuid
@@ -118,5 +116,4 @@ class CheckTable(tables.Table):
             "load_time",
             "proxy",
             "content",
-            "snapshot",
         )

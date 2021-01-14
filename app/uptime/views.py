@@ -28,7 +28,6 @@ class SiteDowntimeListView(SingleTableView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["object"] = Site.objects.get(pk=self.kwargs["pk"])
-        logger.info(context)
         return context
 
 
@@ -49,6 +48,14 @@ class SiteCheckListView(SingleTableView):
 class CheckView(DetailView):
     template_name = "uptime/check.html"
     model = Check
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.object.content and self.object.content.content:
+            context["clean_content"] = self.object.content.content.replace(
+                "</pre>", "&lt;/pre>"
+            )
+        return context
 
 
 class DowntimeListView(SingleTableView):

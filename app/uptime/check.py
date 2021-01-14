@@ -1,6 +1,7 @@
 import datetime
 import logging
 import random
+import uuid
 from typing import Tuple
 
 import requests
@@ -12,7 +13,7 @@ from common import enums
 from common.aws import s3_client
 from uptime.selenium import get_driver, get_drivers, load_site, test_driver
 
-from .models import Check, Site
+from .models import Check, Content, Site
 
 logger = logging.getLogger("uptime")
 
@@ -250,19 +251,10 @@ def check_site_with(driver, proxy, site):
     if status != enums.CheckStatus.UP:
         ignore = True
 
-    check = Check.objects.create(
-        site=site,
-        load_time=dur.total_seconds(),
-        status=status,
-        error=reason,
-        proxy=proxy,
-        ignore=ignore,
-        title=title,
-    )
-
     # upload png and html to s3
+    snapshot_url = None
     if png:
-        png_filename = str(check.uuid) + ".png"
+        png_filename = str(uuid.uuid4()) + ".png"
         upload = s3_client.put_object(
             Bucket=settings.SNAPSHOT_BUCKET,
             Key=png_filename,
@@ -275,27 +267,23 @@ def check_site_with(driver, proxy, site):
                 f"{number}: Unable to push {png_filename} to {settings.SNAPSHOT_BUCKET}"
             )
         else:
-            check.snapshot_url = (
+            snapshot_url = (
                 f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{png_filename}"
             )
-    if content:
-        html_filename = str(check.uuid) + ".html"
-        upload = s3_client.put_object(
-            Bucket=settings.SNAPSHOT_BUCKET,
-            Key=html_filename,
-            ContentType="text/html",
-            ACL="public-read",
-            Body=content,
-        )
-        if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
-            logger.warning(
-                f"{number}: Unable to push {html_filename} to {settings.SNAPSHOT_BUCKET}"
-            )
-        else:
-            check.content_url = (
-                f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{html_filename}"
-            )
-    check.save()
+
+    check = Check.objects.create(
+        site=site,
+        load_time=dur.total_seconds(),
+        status=status,
+        error=reason,
+        proxy=proxy,
+        ignore=ignore,
+        content=Content.objects.create(
+            title=title,
+            content=content,
+            snapshot_url=snapshot_url,
+        ),
+    )
 
     logger.info(f"{status}: {site} ({reason}) duration {dur}, {proxy}")
 
