@@ -52,9 +52,7 @@ class CheckView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.object.content and self.object.content.content:
-            context["clean_content"] = self.object.content.content.replace(
-                "</pre>", "&lt;/pre>"
-            )
+            context["clean_content"] = self.object.content.content
         return context
 
 
