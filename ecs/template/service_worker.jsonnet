@@ -6,8 +6,8 @@ local cpu = std.extVar('cpu');
 local memory = std.extVar('memory');
 
 {
-  executionRoleArn: 'arn:aws:iam::719108811834:role/Puptime-ECS-' + capitalEnv,
-  taskRoleArn: 'arn:aws:iam::719108811834:role/Puptime-ECS-' + capitalEnv + '-TaskRole',
+  executionRoleArn: 'arn:aws:iam::719108811834:role/Uptime-ECS-General',
+  taskRoleArn: 'arn:aws:iam::719108811834:role/Uptime-ECS-General-TaskRole',
   containerDefinitions: [
     puptimeContainer.common('puptimeworker', 'celery', '/app/ops/worker_health.sh || exit 1') + {
       name: 'worker',
