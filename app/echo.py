@@ -114,7 +114,7 @@ if __name__ == "__main__":
     hostname = socket.gethostname()
 
     ips = ip4_addresses()
-    print(f"turnout echo container started at {get_time()}")
+    print(f"uptime echo container started at {get_time()}")
     sys.stdout.flush()
 
     t_tcp = myTCPWrapper(host, port)

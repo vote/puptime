@@ -7,7 +7,7 @@ from django.conf import settings
 logger = logging.getLogger("apm")
 
 
-class TurnoutTracer(Tracer):
+class UptimeTracer(Tracer):
     def write(self, spans):
         logger.debug(spans)
         if settings.DEBUG:
@@ -15,7 +15,7 @@ class TurnoutTracer(Tracer):
         return super().write(spans)
 
 
-tracer = TurnoutTracer()
+tracer = UptimeTracer()
 tracer.configure(
     settings={
         "FILTERS": [

@@ -2,23 +2,23 @@
   for_env(env)::
     [
       {
-        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/turnout.' + env + '.database_url',
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.database_url',
         name: 'DATABASE_URL',
       },
       {
-        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/turnout.' + env + '.redis_url',
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.redis_url',
         name: 'REDIS_URL',
       },
       {
-        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/turnout.' + env + '.secret_key',
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.secret_key',
         name: 'SECRET_KEY',
       },
       {
-        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/turnout.' + env + '.allowed_hosts',
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.allowed_hosts',
         name: 'ALLOWED_HOSTS',
       },
       {
-        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/turnout.' + env + '.primary_origin',
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.primary_origin',
         name: 'PRIMARY_ORIGIN',
       },
       {
@@ -26,19 +26,19 @@
         name: 'DD_API_KEY',
       },
       {
-        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/turnout.' + env + '.digitalocean_key',
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.digitalocean_key',
         name: 'DIGITALOCEAN_KEY',
       },
       {
-        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/turnout.' + env + '.proxy_ssh_key',
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.proxy_ssh_key',
         name: 'PROXY_SSH_KEY',
       },
       {
-        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/turnout.' + env + '.proxy_ssh_key_id',
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.proxy_ssh_key_id',
         name: 'PROXY_SSH_KEY_ID',
       },
       {
-        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/turnout.' + env + '.aws_proxy_role_arn',
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.aws_proxy_role_arn',
         name: 'AWS_PROXY_ROLE_ARN',
       },
     ],

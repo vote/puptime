@@ -19,4 +19,4 @@ app.autodiscover_tasks()
 @app.task(bind=True)
 def debug_task(self):
     time.sleep(3)
-    return {"turnout": "all the voters"}
+    return {"uptime": "it's all looking up from here"}

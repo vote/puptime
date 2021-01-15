@@ -71,23 +71,23 @@
          "secrets": [
             {
                "name": "DATABASE_URL",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.staging.database_url"
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.database_url"
             },
             {
                "name": "REDIS_URL",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.staging.redis_url"
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.redis_url"
             },
             {
                "name": "SECRET_KEY",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.staging.secret_key"
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.secret_key"
             },
             {
                "name": "ALLOWED_HOSTS",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.staging.allowed_hosts"
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.allowed_hosts"
             },
             {
                "name": "PRIMARY_ORIGIN",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.staging.primary_origin"
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.primary_origin"
             },
             {
                "name": "DD_API_KEY",
@@ -95,19 +95,19 @@
             },
             {
                "name": "DIGITALOCEAN_KEY",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.staging.digitalocean_key"
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.digitalocean_key"
             },
             {
                "name": "PROXY_SSH_KEY",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.staging.proxy_ssh_key"
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.proxy_ssh_key"
             },
             {
                "name": "PROXY_SSH_KEY_ID",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.staging.proxy_ssh_key_id"
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.proxy_ssh_key_id"
             },
             {
                "name": "AWS_PROXY_ROLE_ARN",
-               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/turnout.staging.aws_proxy_role_arn"
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.aws_proxy_role_arn"
             }
          ]
       },
@@ -145,7 +145,7 @@
                "Name": "datadog",
                "TLS": "on",
                "dd_message_key": "log",
-               "dd_service": "turnout-datadog",
+               "dd_service": "uptime-datadog",
                "dd_source": "datadog",
                "dd_tags": "env:staging",
                "host": "http-intake.logs.datadoghq.com",
@@ -178,9 +178,9 @@
          "logConfiguration": {
             "logDriver": "awslogs",
             "options": {
-               "awslogs-group": "/voteamerica/ecs/turnout/staging",
+               "awslogs-group": "/voteamerica/ecs/uptime/staging",
                "awslogs-region": "us-west-2",
-               "awslogs-stream-prefix": "turnout-fluentbit"
+               "awslogs-stream-prefix": "uptime-fluentbit"
             }
          },
          "name": "log_router"
