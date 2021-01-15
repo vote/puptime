@@ -46,13 +46,25 @@ def cleanup():
         Proxy.objects.filter(status=enums.ProxyStatus.UP).order_by("created_at").first()
     )
     if oldest:
-        now = timezone.now()
-        if now - oldest.created_at > datetime.timedelta(
+        if timezone.now() - oldest.created_at > datetime.timedelta(
             hours=settings.MAX_PROXY_AGE_HOURS
         ):
-            logger.info(f"Marking oldest {oldest} DOWN")
-            oldest.status = enums.ProxyStatus.DOWN
+            logger.info(f"Marking RETIRED oldest {oldest}")
+            oldest.status = enums.ProxyStatus.RETIRED
             oldest.save()
+
+    # kill retired proxies?
+    for proxy in Proxy.objects.filter(status=enums.ProxyStatus.RETIRED).order_by(
+        "created_at"
+    ):
+        if timezone.now() - proxy.modified_at >datetime.timedelta(
+            minutes=30
+        ):
+            logger.info(f"Marking DOWN retired {proxy}")
+            proxy.status = enums.ProxyStatus.DOWN
+            proxy.save()
+        else:
+            logger.info(f"Keeping RETIRED {proxy} for a bit")
 
     for source, info in PROXY_TYPES.items():
         cls = info["cls"]

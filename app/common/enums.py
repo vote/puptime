@@ -7,6 +7,7 @@ class ProxyStatus(str, Enum):
     UP = "up"
     BURNED = "burned"
     DOWN = "down"
+    RETIRED = "retired"
 
 
 class ClassifierPatternType(str, Enum):
