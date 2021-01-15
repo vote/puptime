@@ -16,5 +16,7 @@ ARG BUILD_ARG
 ENV TAG=$TAG_ARG
 ENV BUILD=$BUILD_ARG
 
+COPY app/ $APP_DIR/
+
 EXPOSE 8000
 CMD ["/app/ops/web_launch.sh"]
