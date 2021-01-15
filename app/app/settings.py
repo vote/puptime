@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-
+from typing import Dict, Optional
 from pathlib import Path
 
 import environs
@@ -231,7 +231,7 @@ PROXY_TAG = env.str("PROXY_TAG", default=ENV)
 
 #### DJANGO-ALIVE CONFIGURATION
 
-ALIVE_CHECKS = {
+ALIVE_CHECKS: Dict[str, Dict[Optional[str], Optional[str]]] = {
     "django_alive.checks.check_migrations": {},
 }
 
