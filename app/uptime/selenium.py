@@ -44,7 +44,7 @@ def get_driver(proxy):
     )  # https://stackoverflow.com/a/49123152/1689770
 
     # random independent user dir
-    options.add_argument(f"--user-data-dir=/tmp/chrome-user-data-{uuid.uuid4()}")
+    #options.add_argument(f"--user-data-dir=/tmp/chrome-user-data-{uuid.uuid4()}")
 
     caps = webdriver.DesiredCapabilities.CHROME.copy()
     caps["pageLoadStrategy"] = "normal"
