@@ -27,6 +27,7 @@ export SECRET_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --n
 export ALLOWED_HOSTS=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.allowed_hosts | jq '.Parameter["Value"]' -r)
 export PRIMARY_ORIGIN=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.primary_origin | jq '.Parameter["Value"]' -r)
 export DD_API_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name general.datadogkey | jq '.Parameter["Value"]' -r)
+export SENTRY_DSN=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.sentry_dsn | jq '.Parameter["Value"]' -r)
 export DIGITALOCEAN_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.digitalocean_key | jq '.Parameter["Value"]' -r)
 export PROXY_SSH_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.proxy_ssh_key | jq '.Parameter["Value"]' -r)
 export PROXY_SSH_KEY_ID=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.proxy_ssh_key_id | jq '.Parameter["Value"]' -r)
@@ -68,6 +69,7 @@ if [ "$2" ]; then
     -e ALLOWED_HOSTS \
     -e PRIMARY_ORIGIN \
     -e DD_API_KEY \
+    -e SENTRY_DSN \
     -e DIGITALOCEAN_KEY \
     -e PROXY_SSH_KEY \
     -e PROXY_SSH_KEY_ID \
@@ -84,6 +86,7 @@ else
     -e ALLOWED_HOSTS \
     -e PRIMARY_ORIGIN \
     -e DD_API_KEY \
+    -e SENTRY_DSN \
     -e DIGITALOCEAN_KEY \
     -e PROXY_SSH_KEY \
     -e PROXY_SSH_KEY_ID \

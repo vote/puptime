@@ -12,6 +12,11 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from typing import Dict, Optional
 from pathlib import Path
 
+import ddtrace
+import sentry_sdk
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
 import environs
 from celery.schedules import crontab
 
@@ -27,6 +32,14 @@ SECRET_KEY = env.str("SECRET_KEY", default="SET_THIS_KEY")
 DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default="localhost")
 PRIMARY_ORIGIN = env.str("PRIMARY_ORIGIN", default="http://localhost")
+
+# Useful analytics and tracking tags
+CLOUD_DETAIL = env.str("CLOUD_DETAIL", default="")
+SERVER_GROUP = env.str("SERVER_GROUP", default="")
+CLOUD_STACK = env.str("CLOUD_STACK", default="local")
+ENV = env.str("ENV", default=CLOUD_STACK)
+TAG = env.str("TAG", default="")
+BUILD = env.str("BUILD", default="0")
 
 
 ### CELERY #########################
@@ -236,3 +249,47 @@ ALIVE_CHECKS: Dict[str, Dict[Optional[str], Optional[str]]] = {
 }
 
 #### END ALIVE CONFIGURATION
+
+
+#### DATADOG CONFIGURATION
+
+ddtrace.tracer.set_tags({"build": BUILD})
+
+#### END DATADOG CONFIGURATION
+
+
+#### STATSD CONFIGURATION
+
+STATSD_TAGS = [
+    f"env:{ENV}",
+    f"spinnaker_detail:{CLOUD_DETAIL}",
+    f"spinnaker_servergroup:{SERVER_GROUP}",
+    f"spinnaker_stack:{CLOUD_STACK}",
+    f"image_tag:{TAG}",
+    f"build:{BUILD}",
+]
+
+#### END STATSD CONFIGURATION
+
+
+#### SENTRY CONFIGURATION
+
+SENTRY_DSN = env.str("SENTRY_DSN", default="")
+if TAG and SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration(), RedisIntegration(), CeleryIntegration()],
+        send_default_pii=True,
+        release=f"puptime@{TAG}",
+        environment=ENV,
+    )
+
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag("SERVER_GROUP", SERVER_GROUP)
+        scope.set_tag("CLOUD_DETAIL", CLOUD_DETAIL)
+        scope.set_tag("CLOUD_STACK", CLOUD_STACK)
+        scope.set_tag("build", BUILD)
+        scope.set_tag("tag", TAG)
+        scope.set_extra("allowed_hosts", ALLOWED_HOSTS)
+
+#### END SENTRY CONFIGURATION

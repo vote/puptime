@@ -26,6 +26,10 @@
         name: 'DD_API_KEY',
       },
       {
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.sentry_dsn',
+        name: 'SENTRY_DSN',
+      },
+      {
         valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.digitalocean_key',
         name: 'DIGITALOCEAN_KEY',
       },

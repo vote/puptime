@@ -98,6 +98,10 @@
                "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/general.datadogkey"
             },
             {
+               "name": "SENTRY_DSN",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.prod.sentry_dsn"
+            },
+            {
                "name": "DIGITALOCEAN_KEY",
                "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.prod.digitalocean_key"
             },
