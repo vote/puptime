@@ -49,6 +49,11 @@ CELERY_RESULT_BACKEND = "django-db"
 CELERY_WORKER_CONCURRENCY = env.int("CELERY_WORKER_CONCURRENCY", default=8)
 CELERY_TASK_SERIALIZER = "json"
 
+# specify a max_loop_interval AND lock timeout that ensure we don't
+# pause too long during/after a redeploy
+CELERY_BEAT_MAX_LOOP_INTERVAL = 5
+CELERY_REDBEAT_LOCK_TIMEOUT = 30
+
 CELERY_TASK_DEFAULT_QUEUE = "default"
 
 CELERY_BEAT_SCHEDULE = {
