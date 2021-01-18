@@ -33,5 +33,6 @@ psycogreen==1.0.*
 django-db-geventpool==3.2.2
 ddtrace==0.45.*
 datadog==0.39.*
+jedi==0.17.2
 ipython==7.10.*
 django-alive
