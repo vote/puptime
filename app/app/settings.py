@@ -196,7 +196,7 @@ LOGGING = {
 
 ##
 
-SELENIUM_URL = env.str("SELENIUM_URL", "http://selenium:4444/wd/hub")
+SELENIUM_URL = env.str("SELENIUM_URL", "http://127.0.0.1:4444/wd/hub")
 SELENIUM_DRIVER_TIMEOUT = env.int("SELENIUM_DRIVER_TIMEOUT", 30)
 
 
