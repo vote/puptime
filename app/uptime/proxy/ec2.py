@@ -106,10 +106,13 @@ class EC2Proxy(object):
 
         while True:
             logger.info("Waiting for public IP address...")
-            response = ec2_client.describe_instances(InstanceIds=[instance_id])
-            ip = response["Reservations"][0]["Instances"][0].get("PublicIpAddress")
-            if ip:
-                break
+            try:
+                response = ec2_client.describe_instances(InstanceIds=[instance_id])
+                ip = response["Reservations"][0]["Instances"][0].get("PublicIpAddress")
+                if ip:
+                    break
+            except Exception as e:
+                logger.info(e)
             time.sleep(5)
 
         create_ubuntu_proxy(
