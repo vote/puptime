@@ -36,3 +36,4 @@ datadog==0.39.*
 jedi==0.17.2
 ipython==7.10.*
 django-alive==1.1.*
+whitenoise==5.0.*
