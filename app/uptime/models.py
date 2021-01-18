@@ -69,9 +69,7 @@ class Site(UUIDModel, TimestampModel):
         if check.status != self.status:
             if check.status == enums.CheckStatus.DOWN:
                 self.last_downtime = Downtime.objects.create(
-                    site=self,
-                    first_down_check=check,
-                    last_down_check=check,
+                    site=self, first_down_check=check, last_down_check=check,
                 )
             elif check.status == enums.CheckStatus.UP and self.last_downtime:
                 self.last_downtime.up_check = check

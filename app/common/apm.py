@@ -17,9 +17,5 @@ class UptimeTracer(Tracer):
 
 tracer = UptimeTracer()
 tracer.configure(
-    settings={
-        "FILTERS": [
-            ddtrace.filters.FilterRequestsOnUrl(r".+/-/health/$"),
-        ],
-    }
+    settings={"FILTERS": [ddtrace.filters.FilterRequestsOnUrl(r".+/-/health/$"),],}
 )

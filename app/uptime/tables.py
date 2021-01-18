@@ -10,11 +10,7 @@ class URLColumn(tables.Column):
 
 
 class UptimeColumn(tables.Column):
-    attrs = {
-        "td": {
-            "align": "right",
-        }
-    }
+    attrs = {"td": {"align": "right",}}
 
     def render(self, value):
         return "{:.2f}%".format(value * 100.0)

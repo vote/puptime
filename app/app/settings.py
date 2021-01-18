@@ -58,10 +58,7 @@ CELERY_REDBEAT_LOCK_TIMEOUT = 30
 CELERY_TASK_DEFAULT_QUEUE = "default"
 
 CELERY_BEAT_SCHEDULE = {
-    "test": {
-        "task": "uptime.tasks.tick",
-        "schedule": crontab(minute=f"*/1"),
-    },
+    "test": {"task": "uptime.tasks.tick", "schedule": crontab(minute=f"*/1"),},
     "check-proxies": {
         "task": "uptime.tasks.check_proxies",
         "schedule": crontab(minute=f"*/15"),
@@ -104,9 +101,7 @@ ROOT_URLCONF = "app.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [
-            "templates",
-        ],
+        "DIRS": ["templates",],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -139,15 +134,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
 ]
 
 
@@ -180,9 +169,7 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
+        "console": {"class": "logging.StreamHandler",},
         "json": {"class": "logging.StreamHandler", "formatter": "json"},
     },
     "formatters": {

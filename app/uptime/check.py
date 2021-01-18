@@ -194,9 +194,7 @@ def check_site_with(driver, proxy, site):
         try:
             response = requests.get(
                 site.url,
-                proxies={
-                    site.url.split(":")[0]: f"socks5://{proxy.address}",
-                },
+                proxies={site.url.split(":")[0]: f"socks5://{proxy.address}",},
                 timeout=5,
             )
 
@@ -264,9 +262,7 @@ def check_site_with(driver, proxy, site):
         proxy=proxy,
         ignore=ignore,
         content=Content.objects.create(
-            title=title,
-            content=content,
-            snapshot_url=snapshot_url,
+            title=title, content=content, snapshot_url=snapshot_url,
         ),
     )
 

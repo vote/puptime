@@ -83,10 +83,7 @@ class DigitalOceanProxy(object):
             "digitalocean",
             name,
             ip,
-            {
-                "region": region,
-                "droplet_id": droplet_id,
-            },
+            {"region": region, "droplet_id": droplet_id,},
             "root",
         )
 

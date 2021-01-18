@@ -18,14 +18,8 @@ logger = logging.getLogger("uptime")
 from django.conf import settings
 
 PROXY_TYPES = {
-    "digitalocean": {
-        "cls": digitalocean.DigitalOceanProxy,
-        "target": 0,
-    },
-    "ec2": {
-        "cls": ec2.EC2Proxy,
-        "target": 6,
-    },
+    "digitalocean": {"cls": digitalocean.DigitalOceanProxy, "target": 0,},
+    "ec2": {"cls": ec2.EC2Proxy, "target": 6,},
 }
 
 PROXY_PORT_MIN = 40000
@@ -139,9 +133,7 @@ def create_ubuntu_proxy(source, name, ip, metadata, user):
     port = random.randint(PROXY_PORT_MIN, PROXY_PORT_MAX)
 
     metadata.update(
-        {
-            "tag": settings.PROXY_TAG,
-        }
+        {"tag": settings.PROXY_TAG,}
     )
     proxy = Proxy.objects.create(
         source=source,

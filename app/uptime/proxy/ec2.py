@@ -74,12 +74,7 @@ class EC2Proxy(object):
             TagSpecifications=[
                 {
                     "ResourceType": "instance",
-                    "Tags": [
-                        {
-                            "Key": "uptime",
-                            "Value": settings.PROXY_TAG,
-                        },
-                    ],
+                    "Tags": [{"Key": "uptime", "Value": settings.PROXY_TAG,},],
                 },
             ],
             NetworkInterfaces=[
@@ -116,22 +111,13 @@ class EC2Proxy(object):
             time.sleep(5)
 
         create_ubuntu_proxy(
-            "ec2",
-            name,
-            ip,
-            {
-                "region": region,
-                "instance_id": instance_id,
-            },
-            "ubuntu",
+            "ec2", name, ip, {"region": region, "instance_id": instance_id,}, "ubuntu",
         )
 
     @classmethod
     def remove_instance(cls, region, instance_id):
         ec2_client = get_proxy_ec2_client(region)
-        ec2_client.terminate_instances(
-            InstanceIds=[instance_id],
-        )
+        ec2_client.terminate_instances(InstanceIds=[instance_id],)
 
     @classmethod
     def remove_proxy(cls, proxy):
@@ -148,10 +134,7 @@ class EC2Proxy(object):
             ec2_client = get_proxy_ec2_client(region)
             response = ec2_client.describe_instances(
                 Filters=[
-                    {
-                        "Name": "tag:uptime",
-                        "Values": [settings.PROXY_TAG],
-                    },
+                    {"Name": "tag:uptime", "Values": [settings.PROXY_TAG],},
                     {
                         "Name": "instance-state-name",
                         "Values": [

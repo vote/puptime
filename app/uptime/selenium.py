@@ -69,8 +69,7 @@ def get_drivers():
     )
     used_proxies = list(
         Proxy.objects.filter(status=enums.ProxyStatus.UP).order_by(
-            "failure_count",
-            "last_used",
+            "failure_count", "last_used",
         )
     )
 

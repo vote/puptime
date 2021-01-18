@@ -21,11 +21,7 @@ def injest(ls, source):
         if not proxy_is_up(address):
             continue
 
-        proxy = Proxy.objects.create(
-            address=address,
-            source=source,
-            status="up",
-        )
+        proxy = Proxy.objects.create(address=address, source=source, status="up",)
         logger.info(f"Created {proxy}")
     logger.info(f"Already had the {had} others from {source}")
 
