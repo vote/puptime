@@ -57,9 +57,7 @@ def cleanup():
     for proxy in Proxy.objects.filter(status=enums.ProxyStatus.RETIRED).order_by(
         "created_at"
     ):
-        if timezone.now() - proxy.modified_at >datetime.timedelta(
-            minutes=30
-        ):
+        if timezone.now() - proxy.modified_at > datetime.timedelta(minutes=30):
             logger.info(f"Marking DOWN retired {proxy}")
             proxy.status = enums.ProxyStatus.DOWN
             proxy.save()
