@@ -9,7 +9,6 @@ from selenium.common.exceptions import (
 )
 
 from common import enums
-from uptime.check import NoProxyError
 from uptime.models import Proxy
 
 logger = logging.getLogger("uptime")
@@ -91,6 +90,7 @@ def get_drivers():
 
         if not proxies:
             logger.warning(f"failed to find 2 working proxies")
+            from uptime.check import NoProxyError
             raise NoProxyError(f"failed to find 2 working proxies")
 
         proxy = proxies.pop()
