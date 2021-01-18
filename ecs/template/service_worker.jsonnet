@@ -12,7 +12,7 @@ local memory = std.extVar('memory');
   containerDefinitions: [
     puptimeContainer.common('puptimeworker', 'celery', '/app/ops/worker_health.sh || exit 1') + {
       name: 'worker',
-      command: ['/app/ops/worker_launch.sh', 'default,usvf'],
+      command: ['/app/ops/worker_launch.sh', 'default'],
     },
   ] + seleniumContainer.for_env(env) + datadogContainers.for_env(env),
   memory: '4096',
