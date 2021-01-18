@@ -32,6 +32,7 @@ export DIGITALOCEAN_KEY=$(aws ssm get-parameter --region $REGION --with-decrypti
 export PROXY_SSH_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.proxy_ssh_key | jq '.Parameter["Value"]' -r)
 export PROXY_SSH_KEY_ID=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.proxy_ssh_key_id | jq '.Parameter["Value"]' -r)
 export AWS_PROXY_ROLE_ARN=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.aws_proxy_role_arn | jq '.Parameter["Value"]' -r)
+export SNAPSHOT_BUCKET=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.snapshot_bucket | jq '.Parameter["Value"]' -r)
 
 echo "Parameters Acquired"
 
@@ -75,6 +76,7 @@ if [ "$2" ]; then
     -e PROXY_SSH_KEY \
     -e PROXY_SSH_KEY_ID \
     -e AWS_PROXY_ROLE_ARN \
+    -e SNAPSHOT_BUCKET \
 -e DEBUG=$DEBUG \
 -p 8000:8000 \
 $IMAGE \
@@ -96,6 +98,7 @@ else
     -e PROXY_SSH_KEY \
     -e PROXY_SSH_KEY_ID \
     -e AWS_PROXY_ROLE_ARN \
+    -e SNAPSHOT_BUCKET \
 -e DEBUG=$DEBUG \
 -p 8000:8000 \
 $IMAGE \

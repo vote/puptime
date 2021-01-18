@@ -116,6 +116,10 @@
             {
                "name": "AWS_PROXY_ROLE_ARN",
                "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.aws_proxy_role_arn"
+            },
+            {
+               "name": "SNAPSHOT_BUCKET",
+               "valueFrom": "arn:aws:ssm:us-west-2:719108811834:parameter/uptime.staging.snapshot_bucket"
             }
          ]
       },

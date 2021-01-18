@@ -45,5 +45,9 @@
         valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.aws_proxy_role_arn',
         name: 'AWS_PROXY_ROLE_ARN',
       },
+      {
+        valueFrom: 'arn:aws:ssm:us-west-2:719108811834:parameter/uptime.' + env + '.snapshot_bucket',
+        name: 'SNAPSHOT_BUCKET',
+      },
     ],
 }
