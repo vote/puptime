@@ -6,6 +6,7 @@ import uuid
 from selenium import webdriver
 
 from common import enums
+from uptime.check import NoProxyError
 from uptime.models import Proxy
 
 logger = logging.getLogger("uptime")
