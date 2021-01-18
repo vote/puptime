@@ -9,16 +9,16 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-from typing import Dict, Optional
 from pathlib import Path
+from typing import Dict, Optional
 
 import ddtrace
+import environs
 import sentry_sdk
+from celery.schedules import crontab
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
-import environs
-from celery.schedules import crontab
 
 env = environs.Env()
 
