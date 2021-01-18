@@ -3,6 +3,7 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
+from django.contrib.postgres.fields import JSONField
 import uuid
 
 
@@ -71,7 +72,7 @@ class Migration(migrations.Migration):
                 ('status', models.TextField(choices=[('CREATING', 'creating'), ('PREPARING', 'preparing'), ('UP', 'up'), ('BURNED', 'burned'), ('DOWN', 'down')], null=True)),
                 ('failure_count', models.IntegerField(null=True)),
                 ('last_used', models.DateTimeField(null=True)),
-                ('metadata', models.JSONField(null=True)),
+                ('metadata', django.contrib.postgres.fields.jsonb.JSONField(null=True)),
             ],
             options={
                 'ordering': ['-created_at'],
@@ -86,7 +87,7 @@ class Migration(migrations.Migration):
                 ('url', models.TextField(null=True)),
                 ('active', models.BooleanField(default=True)),
                 ('description', models.TextField(null=True)),
-                ('metadata', models.JSONField(null=True)),
+                ('metadata', django.contrib.postgres.fields.jsonb.JSONField(null=True)),
                 ('state_changed_at', models.DateTimeField(null=True)),
                 ('uptime_day', models.FloatField(null=True)),
                 ('uptime_week', models.FloatField(null=True)),

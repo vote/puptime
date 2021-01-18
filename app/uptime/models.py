@@ -1,3 +1,4 @@
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 
 from common import enums
@@ -8,7 +9,7 @@ class Site(UUIDModel, TimestampModel):
     url = models.TextField(null=True)
     active = models.BooleanField(default=True)
     description = models.TextField(null=True)
-    metadata = models.JSONField(null=True)  # type: ignore
+    metadata = JSONField(null=True)  # type: ignore
     owner = models.ForeignKey(
         "auth.User", related_name="sites", on_delete=models.CASCADE
     )
@@ -167,7 +168,7 @@ class Proxy(UUIDModel, TimestampModel):
     )
     failure_count = models.IntegerField(null=True)
     last_used = models.DateTimeField(null=True)
-    metadata = models.JSONField(null=True)  # type: ignore
+    metadata = JSONField(null=True)  # type: ignore
 
     class Meta:
         ordering = ["-created_at"]
