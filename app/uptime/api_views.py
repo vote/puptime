@@ -5,6 +5,8 @@ from rest_framework.authentication import BasicAuthentication
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
+from common import enums
+
 from .models import Check, Downtime, Proxy, Site
 from .permissions import IsOwnerOrReadOnly
 from .serializers import (
@@ -97,7 +99,7 @@ class SiteDowntimeList(generics.ListAPIView):
 
 # filtered site list views
 class SiteDownList(generics.ListAPIView):
-    queryset = Site.objects.filter(up=False)
+    queryset = Site.objects.filter(status=enums.CheckStatus.DOWN)
     serializer_class = SiteSerializer
     pagination_class = PaginationStyle
     authentication_classes = [BasicAuthentication]
@@ -105,7 +107,7 @@ class SiteDownList(generics.ListAPIView):
 
 
 class SiteBlockedList(generics.ListAPIView):
-    queryset = Site.objects.filter(blocked=True)
+    queryset = Site.objects.filter(status=enums.CheckStatus.BLOCKED)
     serializer_class = SiteSerializer
     pagination_class = PaginationStyle
     authentication_classes = [BasicAuthentication]

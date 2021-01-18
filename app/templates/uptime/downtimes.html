@@ -2,13 +2,11 @@
 <!doctype html>
 <html>
   <head>
-    <title>Site Downtimes</title>
+    <title>Downtimes</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
   </head>
   <body>
-    <h1><a href="/sites/">Sites</a> > {{ object.description }}</h1>
-    <p><a target="_blank" href="{{ object.url }}">{{ object.url }}</a></p>
-    <p>Downtimes | <a href="../checks/">Checks</a></p>
+    <h1><a href="/sites/">Sites</a> | Downtimes</h1>
     {% render_table table %}
   </body>
 </html>

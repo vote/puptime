@@ -42,9 +42,9 @@ class SiteTable(tables.Table):
         return format_html(
             " | ".join(
                 [
-                    f'<a href="{record.url}">Visit</a>',
-                    f'<a href="/sites/{record.uuid}/checks/">Checks</a>',
+                    f'<a target="_blank" href="{record.url}">Visit</a>',
                     f'<a href="/sites/{record.uuid}/downtimes/">Downtimes</a>',
+                    f'<a href="/sites/{record.uuid}/checks/">Checks</a>',
                 ]
             )
         )
@@ -54,9 +54,8 @@ class SiteTable(tables.Table):
         template_name = "django_tables2/bootstrap.html"
         fields = (
             "description",
-            "up",
-            "state_changed_at",
-            "blocked",
+            "status",
+            "status_changed_at",
             "uptime_day",
             "uptime_week",
             "uptime_month",
@@ -68,6 +67,7 @@ class DowntimeTable(tables.Table):
     duration = tables.Column(empty_values=())
     first_down_check = CheckColumn()
     last_down_check = CheckColumn()
+    up_check = CheckColumn()
 
     def render_site(self, record):
         return format_html(
@@ -94,13 +94,14 @@ class DowntimeTable(tables.Table):
 
 class CheckTable(tables.Table):
     content = tables.Column(empty_values=())
-    snapshot = tables.Column(empty_values=())
+
+    def render_created_at(self, record, value):
+        return format_html(f'<a href="/checks/{record.uuid}/">{value}</a>')
 
     def render_content(self, record):
-        return format_html(f'<a href="{record.content_url}">Content</a>')
-
-    def render_snapshot(self, record):
-        return format_html(f'<a href="{record.snapshot_url}">Snapshot</a>')
+        return format_html(
+            f'<a href="{record.content.snapshot_url if record.content else ""}">Snapshot</a>'
+        )
 
     def render_proxy(self, value):
         return value.uuid
@@ -109,13 +110,10 @@ class CheckTable(tables.Table):
         model = Check
         template_name = "django_tables2/bootstrap.html"
         fields = (
-            "site",
-            "up",
-            "blocked",
+            "created_at",
+            "status",
             "ignore",
             "load_time",
-            "error",
             "proxy",
             "content",
-            "snapshot",
         )

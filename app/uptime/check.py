@@ -1,19 +1,19 @@
 import datetime
 import logging
 import random
+import uuid
+from typing import Tuple
 
+import requests
 from django.conf import settings
-from selenium.common.exceptions import (
-    RemoteDriverServerException,
-    SessionNotCreatedException,
-    WebDriverException,
-)
+from django.utils import timezone
+from selenium.common.exceptions import WebDriverException
 
 from common import enums
 from common.aws import s3_client
-from uptime.selenium import get_driver, get_drivers
+from uptime.selenium import get_driver, get_drivers, load_site, test_driver
 
-from .models import Check, Downtime, Site
+from .models import Check, Content, Site
 
 logger = logging.getLogger("uptime")
 
@@ -36,86 +36,84 @@ class BurnedProxyError(Exception):
 
 def check_all():
     sites = list(Site.objects.filter(active=True))
-    logger.info("Checking all {len(sites)} sites")
+    logger.info(f"Checking all {len(sites)} sites")
     drivers = get_drivers()
     random.shuffle(sites)
-    for site in sites:
-        check_site(drivers, site)
+    while sites:
+        site = sites.pop()
+        try:
+            last_check = (
+                Check.objects.filter(site=site, ignore=False)
+                .order_by("-created_at")
+                .first()
+            )
+            if last_check:
+                wait = datetime.timedelta(seconds=site.get_check_interval())
+                been = timezone.now() - last_check.created_at
+                if been < wait:
+                    logger.info(f"Not time to check {site}: been {been}, wait {wait}")
+                    continue
+            check_site(drivers, site)
+        except StaleProxyError:
+            logger.info("Refreshing proxies")
+            for item in drivers:
+                item[0].quit()
+            drivers = get_drivers()
+
     for item in drivers:
         item[0].quit()
 
 
 def check_site(drivers, site):
-    # first try primary proxy
-    check = check_site_with_pos(drivers, 0, site)
-
-    bad_proxy = False
-    if not check.up or check.blocked:
-        # try another proxy
-        check2 = check_site_with_pos(drivers, 1, site)
-
-        if check2.up and not check2.blocked:
-            # new proxy is fine; ignore the failure
-
-            # check again
-            check3 = check_site_with_pos(drivers, 0, site)
-            if check3.up and not check3.blocked:
-                # call it intermittent; stick with original proxy
-                check = check3
-            else:
-                # we've burned the proxy
-                logger.warning(f"We've burned {drivers[0][1]} on site {site}")
-                drivers[0][1].failure_count += 1
-                drivers[0][1].state = enums.ProxyStatus.BURNED
-                drivers[0][1].save()
-
-                check = check2
-
-                bad_proxy = True
+    # try proxies in order
+    failures = []
+    burned_proxies = []
+    for pos in range(len(drivers)):
+        check = check_site_with_pos(drivers, pos, site)
+        if check.status == enums.CheckStatus.UP:
+            break
+        if check.status == enums.CheckStatus.BLOCKED:
+            burned_proxies.append(check)
         else:
-            # verify sentinel site loads
-            sentinel = Site.get_sentinel_site()
-            check4 = check_site_with_pos(drivers, 0, sentinel)
-            if not check4.up:
-                raise NoProxyError("cannot reach sentinel site with original proxy")
-            check5 = check_site_with_pos(drivers, 1, sentinel)
-            if not check5.up:
-                raise NoProxyError("cannot reach sentinel site with backup proxy")
+            failures.append(check)
 
-            # sentinel looks okay; do not ignore the failurex
+    if check.status == enums.CheckStatus.UP:
+        # re-check failures to see if they were transient issues or the proxies' fault
+        for pos in range(len(failures)):
+            recheck = check_site_with_pos(drivers, pos, site)
+            if recheck.status == failures[pos].status:
+                proxy = drivers[pos][1]
+                logger.info(f"Proxy {proxy} appears to be burned")
+                burned_proxies.append(proxy)
+            else:
+                logger.info(
+                    f"Proxy {proxy} got different result ({failures[pos].status} vs {recheck.status})"
+                )
+    else:
+        # all attempts were either DOWN or BURNED
+        for check in failures:
             check.ignore = False
             check.save()
 
-    if site.up != check.up:
-        site.up = check.up
-        if site.up:
-            if site.last_downtime:
-                site.last_downtime.up_check = check
-                site.last_downtime.save()
-                site.last_downtime = None
-        else:
-            site.last_downtime = Downtime.objects.create(
-                site=site,
-                first_down_check=check,
-                last_down_check=check,
-            )
-    elif not check.up:
-        # update the current downtime
-        site.last_downtime.last_down_check = check
+        if failures:
+            # go with the first failure
+            check = failures[0]
+
+    if check.status == enums.CheckStatus.DOWN:
+        # use two of our down checks so that we start with a non-zero-length downtime
+        site.add_check(failures[0])
+        if len(failures) > 1:
+            site.add_check(failures[-1])
+    else:
+        site.add_check(check)
+    if site.last_downtime:
         site.last_downtime.save()
-
-    if site.blocked != check.blocked:
-        site.blocked = check.blocked
-        site.blocked_changed_at = check.created_at
-        if site.blocked:
-            site.last_went_blocked_check = check
-        else:
-            site.last_went_unblocked_check = check
-
     site.calc_uptimes()
     site.save()
 
-    if bad_proxy:
+    for proxy in burned_proxies:
+        proxy.state = enums.ProxyStatus.BURNED
+        proxy.save()
         raise StaleProxyError()
 
 
@@ -161,170 +159,140 @@ def check_site_with_pos(drivers, pos, site):
     return check
 
 
+def classify_check(title: str, content: str) -> Tuple[enums.CheckStatus, str]:
+    BLOCK_STRINGS = [
+        "Request unsuccessful. Incapsula incident ID",
+        #        "<html><head></head><body></body></html>",
+    ]
+    for s in BLOCK_STRINGS:
+        if s in content:
+            return enums.CheckStatus.BLOCKED, f"page contains block string '{s}'"
+
+    BLOCK_TITLE_STRINGS = ["Please Contact Us"]
+    for s in BLOCK_TITLE_STRINGS:
+        if s.lower() == title.lower():
+            return enums.CheckStatus.BLOCKED, f"page title contains block string '{s}'"
+
+    DOWN_TITLE_STRINGS = ["404", "not found", "error"]
+    for s in DOWN_TITLE_STRINGS:
+        if s in title.lower():
+            return enums.CheckStatus.DOWN, f"title contains string '{s}'"
+
+    BODY_STRINGS = [
+        "vote",
+        "poll",
+        "absentee",
+        "ballot",
+        "Please enable JavaScript to view the page content.",  # for CT
+        "application/pdf",  # for WY
+    ]
+    lower_content = content.lower()
+    for s in BODY_STRINGS:
+        if s.lower() in lower_content:
+            return enums.CheckStatus.UP, None
+
+    return enums.CheckStatus.DOWN, f"page does not contain required string"
+
+
 def check_site_with(driver, proxy, site):
     logger.debug(f"Checking {site} with {proxy}")
-    error = None
-    timeout = None
-    title = ""
-    content = ""
-    png = None
-    before = datetime.datetime.utcnow()
-    try:
-        driver.get(site.url)
-        if site.description == "test" and not random.choice([0, 1]):
-            up = False
-            title = "fake down title"
-            content = "fake down content"
-        else:
-            up = True
-            title = driver.title
-            content = driver.page_source
-            png = driver.get_screenshot_as_png()
-    except SessionNotCreatedException as e:
-        raise e
-    except RemoteDriverServerException as e:
-        raise e
-    except Exception as e:
-        if "Timed out receiving message from renderer: -" in str(e):
-            # if we get a negatime timeout it's because the worker is broken
-            raise SeleniumError(f"Problem talking to selenium worker: {e}")
-        if "establishing a connection" in str(e):
-            raise e
-        if "marionette" in str(e):
-            raise e
-        if "timeout" in str(e):
-            # we may tolerate timeout in some cases; see below
-            timeout = str(e)
-            up = True
-        else:
-            up = False
-            error = str(e)
-    after = datetime.datetime.utcnow()
-    dur = after - before
 
-    ignore = False
-    blocked = False
-    burn = False
+    # headless chrome (and firefox) can't handle PDFs inline
+    if site.url.endswith(".pdf"):
+        # use requests to fetch PDF via the proxy
+        reason = None
+        timeout = None
+        title = ""
+        content = ""
+        png = None
+        before = datetime.datetime.utcnow()
+        try:
+            response = requests.get(
+                site.url,
+                proxies={
+                    site.url.split(":")[0]: f"socks5://{proxy.address}",
+                },
+                timeout=5,
+            )
 
-    # blocked?
-    BURN_LIST = [
-        "Request unsuccessful. Incapsula incident ID",
-        "<html><head></head><body></body></html>",
-    ]
-    """
-    if get_feature_bool("leouptime", "enable_burn_list"):
-        for b in BURN_LIST:
-            if b in content:
-                blocked = True
-                ignore = True
-                # make sure we've used this proxy on this site before...
-                if SiteCheck.objects.filter(
-                    site=site, proxy=proxy, up=True, blocked=False
-                ).exists():
-                    error = f"Proxy is burned (page contains '{b}')"
-                    burn = True
-                    break
-                else:
-                    logger.warning(
-                        f"Not burning {proxy} on {site} that has never successfully checked it before"
-                    )
-    """
-
-    if up and not blocked:
-        # the trick is determining if this loaded the real page or some sort of error/404 page.
-        for item in ["404", "not found", "error"]:
-            if item in title.lower():
-                up = False
-                error = f"'{item}' in page title"
-        for item in ["network outage"]:
-            if item in content.lower():
-                up = False
-                error = f"'{item}' in page content"
-
-        REQUIRED_STRINGS = [
-            "vote",
-            "Vote",
-            "Poll",
-            "poll",
-            "Absentee",
-            "ballot",
-            "Please enable JavaScript to view the page content.",  # for CT
-            "application/pdf",  # for WY
-        ]
-        have_any = False
-        for item in REQUIRED_STRINGS:
-            if item in content:
-                have_any = True
-        if not have_any:
-            up = False
-            if timeout:
-                error = timeout
+            if response.headers["content-type"] == "application/pdf":
+                status = enums.CheckStatus.UP
             else:
-                error = f"Cannot find any of {REQUIRED_STRINGS} not in page content"
+                status = enums.CheckStatus.DOWN
+                content = response.content
+                reason = f"content-type is '{response.headers['content-type']}', not expected 'application/pdf'"
+        except Exception as e:
+            status = enums.CheckStatus.DOWN
+            reason = str(e)
+        after = datetime.datetime.utcnow()
+        dur = after - before
+    else:
+        # first verify the proxy works
+        if not test_driver(driver):
+            raise StaleProxyError(f"proxy {proxy} cannot reach sentinel")
 
-    # Important: we ignore down checks until we have confirmed the result
-    if not up:
+        # check site
+        before = datetime.datetime.utcnow()
+        error, timeout, title, content, png = load_site(driver, site.url)
+        after = datetime.datetime.utcnow()
+        dur = after - before
+
+        if error:
+            status = enums.CheckStatus.DOWN
+            reason = error
+        else:
+            status, reason = classify_check(title, content)
+
+        if timeout and status == enums.CheckStatus.DOWN:
+            reason = timeout
+
+    # Important: we ignore non-UP checks until we have confirmed the result
+    ignore = False
+    if status != enums.CheckStatus.UP:
         ignore = True
+
+    # upload png and html to s3
+    snapshot_url = None
+    if png:
+        png_filename = str(uuid.uuid4()) + ".png"
+        upload = s3_client.put_object(
+            Bucket=settings.SNAPSHOT_BUCKET,
+            Key=png_filename,
+            ContentType="image/png",
+            ACL="public-read",
+            Body=png,
+        )
+        if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
+            logger.warning(
+                f"{number}: Unable to push {png_filename} to {settings.SNAPSHOT_BUCKET}"
+            )
+        else:
+            snapshot_url = (
+                f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{png_filename}"
+            )
 
     check = Check.objects.create(
         site=site,
-        up=up,
-        blocked=blocked,
         load_time=dur.total_seconds(),
-        error=error,
+        status=status,
+        error=reason,
         proxy=proxy,
         ignore=ignore,
-        title=title,
+        content=Content.objects.create(
+            title=title,
+            content=content,
+            snapshot_url=snapshot_url,
+        ),
     )
 
-    # upload png and html to s3
-    png_filename = str(check.uuid) + ".png"
-    html_filename = str(check.uuid) + ".html"
-    upload = s3_client.put_object(
-        Bucket=settings.SNAPSHOT_BUCKET,
-        Key=png_filename,
-        ContentType="image/png",
-        ACL="public-read",
-        Body=png,
-    )
-    if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
-        logger.warning(
-            f"{number}: Unable to push {png_filename} to {settings.SNAPSHOT_BUCKET}"
-        )
-    else:
-        check.snapshot_url = (
-            f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{png_filename}"
-        )
-    upload = s3_client.put_object(
-        Bucket=settings.SNAPSHOT_BUCKET,
-        Key=html_filename,
-        ContentType="text/html",
-        ACL="public-read",
-        Body=content,
-    )
-    if upload.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
-        logger.warning(
-            f"{number}: Unable to push {html_filename} to {settings.SNAPSHOT_BUCKET}"
-        )
-    else:
-        check.content_url = (
-            f"https://{settings.SNAPSHOT_BUCKET}.s3.amazonaws.com/{html_filename}"
-        )
-    check.save()
+    logger.info(f"{status}: {site} ({reason}) duration {dur}, {proxy}")
 
-    if burn:
-        logger.info(f"BURNED PROXY: {site} ({error}) duration {dur}, {proxy}")
+    if status == enums.CheckStatus.BLOCKED:
+        logger.info(f"BURNED PROXY: {site} ({reason}) duration {dur}, {proxy}")
         proxy.failure_count += 1
         proxy.state = enums.ProxyStatus.BURNED
         proxy.save()
         raise StaleProxyError
-
-    if blocked:
-        logger.info(f"BLOCKED: {site} ({error}) duration {dur}, {proxy}")
-    elif up:
-        logger.info(f"UP: {site} ({error}) duration {dur}, {proxy}")
-    else:
-        logger.info(f"DOWN: {site} ({error}) duration {dur}, {proxy}")
 
     return check
 
