@@ -2,10 +2,13 @@
 
 pip install awscli
 
-eval $(aws ecr get-login --no-include-email --region us-west-2)
-docker build --cache-from voteamerica/puptime-ci-cache:latest --build-arg TAG_ARG=${TRAVIS_TAG} --build-arg BUILD_ARG=${TRAVIS_BUILD_NUMBER} -t puptime .
-docker tag puptime:latest ${AWS_ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com/puptime:${TRAVIS_TAG}
-docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com/puptime:${TRAVIS_TAG}
+eval $(aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 719108811834.dkr.ecr.us-west-2.amazonaws.com)
+docker build --build-arg TAG_ARG=${TRAVIS_TAG} --build-arg BUILD_ARG=${TRAVIS_BUILD_NUMBER} -t puptime .
+docker tag puptime:latest 719108811834.dkr.ecr.us-west-2.amazonaws.com/puptime:${TRAVIS_TAG}
+docker push 719108811834.dkr.ecr.us-west-2.amazonaws.com/puptime:${TRAVIS_TAG}
+docker tag puptime:latest public.ecr.aws/e6b7u9l0/puptime:${TRAVIS_TAG}
+eval $(aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/e6b7u9l0/puptime)
+docker push public.ecr.aws/e6b7u9l0/puptime:${TRAVIS_TAG}
 
 
 curl https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/ \
@@ -19,5 +22,5 @@ curl https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/ \
         \"repository\":\"vote/puptime\",
         \"commit\":\"${TRAVIS_COMMIT}\"
     }],
-    \"projects\":[\"puptime\"]
+    \"projects\":[\"uptime\"]
 }"

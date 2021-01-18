@@ -15,10 +15,6 @@ jsonnetfmt -i ./template/*.jsonnet
 jsonnetfmt -i ./template/include/*.libsonnet
 
 
-jsonnet ./template/service_web.jsonnet --ext-str env=dev > ./generated/dev/service_web.task.json
-jsonnet ./template/service_beat.jsonnet --ext-str env=dev > ./generated/dev/service_beat.task.json
-jsonnet ./template/service_worker.jsonnet --ext-str env=dev > ./generated/dev/service_worker.task.json
-
 jsonnet ./template/service_web.jsonnet --ext-str env=staging > ./generated/staging/service_web.task.json
 jsonnet ./template/service_beat.jsonnet --ext-str env=staging > ./generated/staging/service_beat.task.json
 jsonnet ./template/service_worker.jsonnet --ext-str env=staging > ./generated/staging/service_worker.task.json

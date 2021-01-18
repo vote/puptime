@@ -21,16 +21,18 @@ if [ $1 ]; then
 fi
 
 echo "Account ID: $ACCOUNT_ID"
-export DATABASE_URL=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.database_url | jq '.Parameter["Value"]' -r)
-export REDIS_URL=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.redis_url | jq '.Parameter["Value"]' -r)
-export SECRET_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.secret_key | jq '.Parameter["Value"]' -r)
-export ALLOWED_HOSTS=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.allowed_hosts | jq '.Parameter["Value"]' -r)
-export PRIMARY_ORIGIN=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.primary_origin | jq '.Parameter["Value"]' -r)
+export DATABASE_URL=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.database_url | jq '.Parameter["Value"]' -r)
+export REDIS_URL=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.redis_url | jq '.Parameter["Value"]' -r)
+export SECRET_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.secret_key | jq '.Parameter["Value"]' -r)
+export ALLOWED_HOSTS=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.allowed_hosts | jq '.Parameter["Value"]' -r)
+export PRIMARY_ORIGIN=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.primary_origin | jq '.Parameter["Value"]' -r)
 export DD_API_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name general.datadogkey | jq '.Parameter["Value"]' -r)
-export DIGITALOCEAN_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.digitalocean_key | jq '.Parameter["Value"]' -r)
-export PROXY_SSH_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.proxy_ssh_key | jq '.Parameter["Value"]' -r)
-export PROXY_SSH_KEY_ID=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.proxy_ssh_key_id | jq '.Parameter["Value"]' -r)
-export AWS_PROXY_ROLE_ARN=$(aws ssm get-parameter --region $REGION --with-decryption --name turnout.$ENVIRONMENT.aws_proxy_role_arn | jq '.Parameter["Value"]' -r)
+export SENTRY_DSN=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.sentry_dsn | jq '.Parameter["Value"]' -r)
+export DIGITALOCEAN_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.digitalocean_key | jq '.Parameter["Value"]' -r)
+export PROXY_SSH_KEY=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.proxy_ssh_key | jq '.Parameter["Value"]' -r)
+export PROXY_SSH_KEY_ID=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.proxy_ssh_key_id | jq '.Parameter["Value"]' -r)
+export AWS_PROXY_ROLE_ARN=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.aws_proxy_role_arn | jq '.Parameter["Value"]' -r)
+export SNAPSHOT_BUCKET=$(aws ssm get-parameter --region $REGION --with-decryption --name uptime.$ENVIRONMENT.snapshot_bucket | jq '.Parameter["Value"]' -r)
 
 echo "Parameters Acquired"
 
@@ -41,6 +43,7 @@ else
   AWS_CRED_DETAILS=$(aws sts get-session-token --duration-seconds 86400)
   export AWS_ACCESS_KEY_ID=$(echo $AWS_CRED_DETAILS | jq '.Credentials["AccessKeyId"]' -r)
   export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CRED_DETAILS | jq '.Credentials["SecretAccessKey"]' -r)
+  export AWS_SESSION_TOKEN=$(echo $AWS_CRED_DETAILS | jq '.Credentials["SessionToken"]' -r)
   export AWS_DEFAULT_REGION=$REGION
   echo "AWS Credentials Acquired"
 fi
@@ -68,26 +71,34 @@ if [ "$2" ]; then
     -e ALLOWED_HOSTS \
     -e PRIMARY_ORIGIN \
     -e DD_API_KEY \
+    -e SENTRY_DSN \
     -e DIGITALOCEAN_KEY \
     -e PROXY_SSH_KEY \
     -e PROXY_SSH_KEY_ID \
     -e AWS_PROXY_ROLE_ARN \
+    -e SNAPSHOT_BUCKET \
 -e DEBUG=$DEBUG \
 -p 8000:8000 \
 $IMAGE \
 /bin/bash -c "$2"
 else
   docker run -i -t \
+    -e AWS_ACCESS_KEY_ID \
+    -e AWS_SECRET_ACCESS_KEY \
+    -e AWS_DEFAULT_REGION \
+    -e AWS_SESSION_TOKEN \
     -e DATABASE_URL \
     -e REDIS_URL \
     -e SECRET_KEY \
     -e ALLOWED_HOSTS \
     -e PRIMARY_ORIGIN \
     -e DD_API_KEY \
+    -e SENTRY_DSN \
     -e DIGITALOCEAN_KEY \
     -e PROXY_SSH_KEY \
     -e PROXY_SSH_KEY_ID \
     -e AWS_PROXY_ROLE_ARN \
+    -e SNAPSHOT_BUCKET \
 -e DEBUG=$DEBUG \
 -p 8000:8000 \
 $IMAGE \

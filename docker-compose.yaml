@@ -68,7 +68,7 @@ services:
 
   worker:
     image: voteamerica/uptime-ci-cache:latest
-    entrypoint: wait-for-it -t 45 postgres:5432 redis:6379 --
+    entrypoint: wait-for-it -t 45 postgres:5432 redis:6379 selenium:4444 --
     command: watchmedo auto-restart --directory /app/ --patterns='*.py;*.yml' --recursive -- python -m celery -A app.celery_app worker -Q default
     volumes:
       - ./app:/app
@@ -80,12 +80,14 @@ services:
       - DEBUG=True
       - DD_AGENT_HOST=ddagent
       - DD_DOGSTATSD_PORT=3333
+      - SELENIUM_URL=http://selenium:4444/wd/hub
     env_file:
       - .env
     depends_on:
       - postgres
       - redis
       - beat
+      - selenium
 
   selenium:
     image: selenium/standalone-chrome:3.141

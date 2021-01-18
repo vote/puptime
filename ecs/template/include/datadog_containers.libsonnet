@@ -40,7 +40,7 @@
           options: {
             Name: 'datadog',
             host: 'http-intake.logs.datadoghq.com',
-            dd_service: 'turnout-datadog',
+            dd_service: 'uptime-datadog',
             dd_source: 'datadog',
             dd_message_key: 'log',
             dd_tags: 'env:' + env,
@@ -68,9 +68,9 @@
         logConfiguration: {
           logDriver: 'awslogs',
           options: {
-            'awslogs-group': '/voteamerica/ecs/turnout/' + env,
+            'awslogs-group': '/voteamerica/ecs/uptime/' + env,
             'awslogs-region': 'us-west-2',
-            'awslogs-stream-prefix': 'turnout-fluentbit',
+            'awslogs-stream-prefix': 'uptime-fluentbit',
           },
         },
       },

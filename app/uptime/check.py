@@ -11,27 +11,12 @@ from selenium.common.exceptions import WebDriverException
 
 from common import enums
 from common.aws import s3_client
+from uptime.exceptions import SeleniumError, StaleProxyError
 from uptime.selenium import get_driver, get_drivers, load_site, test_driver
 
 from .models import Check, Content, Site
 
 logger = logging.getLogger("uptime")
-
-
-class SeleniumError(Exception):
-    pass
-
-
-class NoProxyError(Exception):
-    pass
-
-
-class StaleProxyError(Exception):
-    pass
-
-
-class BurnedProxyError(Exception):
-    pass
 
 
 def check_all():

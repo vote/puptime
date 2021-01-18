@@ -9,11 +9,17 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-
+import os
 from pathlib import Path
+from typing import Dict, Optional
 
+import ddtrace
 import environs
+import sentry_sdk
 from celery.schedules import crontab
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
 
 env = environs.Env()
 
@@ -28,6 +34,14 @@ DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default="localhost")
 PRIMARY_ORIGIN = env.str("PRIMARY_ORIGIN", default="http://localhost:9901")
 
+# Useful analytics and tracking tags
+CLOUD_DETAIL = env.str("CLOUD_DETAIL", default="")
+SERVER_GROUP = env.str("SERVER_GROUP", default="")
+CLOUD_STACK = env.str("CLOUD_STACK", default="local")
+ENV = env.str("ENV", default=CLOUD_STACK)
+TAG = env.str("TAG", default="")
+BUILD = env.str("BUILD", default="0")
+
 
 ### CELERY #########################
 
@@ -35,6 +49,11 @@ CELERY_BROKER_URL = env.str("REDIS_URL", default="redis://redis:6379")
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_WORKER_CONCURRENCY = env.int("CELERY_WORKER_CONCURRENCY", default=8)
 CELERY_TASK_SERIALIZER = "json"
+
+# specify a max_loop_interval AND lock timeout that ensure we don't
+# pause too long during/after a redeploy
+CELERY_BEAT_MAX_LOOP_INTERVAL = 5
+CELERY_REDBEAT_LOCK_TIMEOUT = 30
 
 CELERY_TASK_DEFAULT_QUEUE = "default"
 
@@ -66,9 +85,11 @@ INSTALLED_APPS = [
     "django_celery_results",
     "django_tables2",
     "uptime",
+    "django_alive",
 ]
 
 MIDDLEWARE = [
+    "django_alive.middleware.healthcheck_bypass_host_check",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -147,8 +168,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
+BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 STATIC_URL = "/static/"
-
+STATIC_ROOT = os.path.join(BASE_PATH, "static")
 
 ## logging
 
@@ -193,7 +215,7 @@ LOGGING = {
 
 ##
 
-SELENIUM_URL = env.str("SELENIUM_URL", "http://selenium:4444/wd/hub")
+SELENIUM_URL = env.str("SELENIUM_URL", "http://127.0.0.1:4444/wd/hub")
 SELENIUM_DRIVER_TIMEOUT = env.int("SELENIUM_DRIVER_TIMEOUT", 30)
 
 
@@ -226,3 +248,56 @@ PROXY_TAG = env.str("PROXY_TAG", default=ENV)
 MAX_PROXY_AGE_HOURS = env.int("MAX_PROXY_AGE_HOURS", default=2)
 
 #### END PROXY_CONFIGURATION
+
+
+#### DJANGO-ALIVE CONFIGURATION
+
+ALIVE_CHECKS: Dict[str, Dict[Optional[str], Optional[str]]] = {
+    "django_alive.checks.check_migrations": {},
+}
+
+#### END ALIVE CONFIGURATION
+
+
+#### DATADOG CONFIGURATION
+
+ddtrace.tracer.set_tags({"build": BUILD})
+
+#### END DATADOG CONFIGURATION
+
+
+#### STATSD CONFIGURATION
+
+STATSD_TAGS = [
+    f"env:{ENV}",
+    f"spinnaker_detail:{CLOUD_DETAIL}",
+    f"spinnaker_servergroup:{SERVER_GROUP}",
+    f"spinnaker_stack:{CLOUD_STACK}",
+    f"image_tag:{TAG}",
+    f"build:{BUILD}",
+]
+
+#### END STATSD CONFIGURATION
+
+
+#### SENTRY CONFIGURATION
+
+SENTRY_DSN = env.str("SENTRY_DSN", default="")
+if TAG and SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration(), RedisIntegration(), CeleryIntegration()],
+        send_default_pii=True,
+        release=f"puptime@{TAG}",
+        environment=ENV,
+    )
+
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag("SERVER_GROUP", SERVER_GROUP)
+        scope.set_tag("CLOUD_DETAIL", CLOUD_DETAIL)
+        scope.set_tag("CLOUD_STACK", CLOUD_STACK)
+        scope.set_tag("build", BUILD)
+        scope.set_tag("tag", TAG)
+        scope.set_extra("allowed_hosts", ALLOWED_HOSTS)
+
+#### END SENTRY CONFIGURATION

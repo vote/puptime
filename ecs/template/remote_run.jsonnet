@@ -61,6 +61,7 @@ local docker_env_lines = [
     AWS_CRED_DETAILS=$(aws sts get-session-token --duration-seconds 86400)
     export AWS_ACCESS_KEY_ID=$(echo $AWS_CRED_DETAILS | jq '.Credentials["AccessKeyId"]' -r)
     export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CRED_DETAILS | jq '.Credentials["SecretAccessKey"]' -r)
+    export AWS_SESSION_TOKEN=$(echo $AWS_CRED_DETAILS | jq '.Credentials["SessionToken"]' -r)
     export AWS_DEFAULT_REGION=$REGION
     echo "AWS Credentials Acquired"
   fi
@@ -90,6 +91,10 @@ local docker_env_lines = [
   /bin/bash -c "$2"
   else
     docker run -i -t \
+      -e AWS_ACCESS_KEY_ID \
+      -e AWS_SECRET_ACCESS_KEY \
+      -e AWS_DEFAULT_REGION \
+      -e AWS_SESSION_TOKEN \
 ||| + std.join('\n', docker_env_lines) + |||
 
   -e DEBUG=$DEBUG \

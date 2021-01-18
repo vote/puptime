@@ -40,13 +40,13 @@ make psql:
 	PGPASSWORD=uptime psql uptime -h localhost -p 15432 -U postgres
 
 shellprod:
-	ENVIRONMENT=prod bash scripts/remote_run.sh ${TAG} "${CMD}"
+	ENVIRONMENT=prod bash scripts/remote_run.sh "${TAG}" "${CMD}"
 
 shellstaging:
-	ENVIRONMENT=staging bash scripts/remote_run.sh ${TAG} "${CMD}"
+	ENVIRONMENT=staging bash scripts/remote_run.sh "${TAG}" "${CMD}"
 
 shelldev:
-	ENVIRONMENT=dev DOCKER_REPO_NAME=uptimedev bash scripts/remote_run.sh ${TAG} "${CMD}"
+	ENVIRONMENT=dev DOCKER_REPO_NAME=uptimedev bash scripts/remote_run.sh "${TAG}" "${CMD}"
 
 resetlocaldb:
 	scripts/reset_local_db.sh

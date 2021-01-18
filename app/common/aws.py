@@ -28,12 +28,7 @@ def get_proxy_ec2_client(region):
             region_name=region,
         )
 
-    sts_client = boto3.client(
-        "sts",
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=region,
-    )
+    sts_client = boto3.client("sts")
     response = sts_client.assume_role(
         RoleArn=settings.AWS_PROXY_ROLE_ARN,
         RoleSessionName=f"puptime-{settings.PROXY_TAG}",
