@@ -128,6 +128,15 @@
             }
          ],
          "essential": true,
+         "healthCheck": {
+            "command": [
+               "CMD-SHELL",
+               "/opt/bin/check-grid.sh"
+            ],
+            "interval": 30,
+            "retries": 3,
+            "timeout": 30
+         },
          "image": "selenium/standalone-chrome:3.141.59-20200525",
          "logConfiguration": {
             "logDriver": "awsfirelens",
@@ -136,7 +145,7 @@
                "Name": "datadog",
                "TLS": "on",
                "dd_message_key": "log",
-               "dd_service": "uptime-datadog",
+               "dd_service": "uptime-selenium",
                "dd_source": "selenium",
                "dd_tags": "env:staging",
                "host": "http-intake.logs.datadoghq.com",

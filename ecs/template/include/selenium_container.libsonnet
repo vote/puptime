@@ -16,12 +16,21 @@
             containerPort: 4444,
           },
         ],
+        healthCheck: {
+          command: [
+            'CMD-SHELL',
+            '/opt/bin/check-grid.sh',
+          ],
+          interval: 30,
+          timeout: 30,
+          retries: 3,
+        },
         logConfiguration: {
           logDriver: 'awsfirelens',
           options: {
             Name: 'datadog',
             host: 'http-intake.logs.datadoghq.com',
-            dd_service: 'uptime-datadog',
+            dd_service: 'uptime-selenium',
             dd_source: 'selenium',
             dd_message_key: 'log',
             dd_tags: 'env:' + env,
