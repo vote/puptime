@@ -66,4 +66,9 @@ class DowntimeListView(SingleTableView):
 
 
 def test_nonce_view(request, nonce):
-    return HttpResponse(nonce)
+    try:
+        if str(int(nonce)) == nonce:
+            return HttpResponse(nonce)
+    except ValueError:
+        pass
+    return HttpResponse("Non-numeric nonce", status=status.HTTP_403_FORBIDDEN)
