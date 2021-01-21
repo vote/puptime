@@ -66,8 +66,8 @@ def check_site(drivers, site):
         # re-check failures to see if they were transient issues or the proxies' fault
         for pos in range(len(failures)):
             recheck = check_site_with_pos(drivers, pos, site)
+            proxy = drivers[pos][1]
             if recheck.status == failures[pos].status:
-                proxy = drivers[pos][1]
                 logger.info(f"Proxy {proxy} appears to be burned")
                 burned_proxies.append(proxy)
             else:
