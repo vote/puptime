@@ -9,7 +9,7 @@ from selenium.common.exceptions import (
 )
 
 from common import enums
-from uptime.exceptions import NoProxyError
+from uptime.exceptions import NoProxyError, SeleniumError
 from uptime.models import Proxy
 
 logger = logging.getLogger("uptime")
