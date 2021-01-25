@@ -39,7 +39,7 @@ def check_all():
                     logger.info(f"Not time to check {site}: been {been}, wait {wait}")
                     continue
             check_site(drivers, site)
-        except StaleProxyError:
+        except (StaleProxyError, SeleniumError):
             logger.info("Refreshing proxies")
             for item in drivers:
                 item[0].quit()
