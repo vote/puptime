@@ -43,6 +43,10 @@ def get_driver(proxy):
         "--disable-browser-side-navigation"
     )  # https://stackoverflow.com/a/49123152/1689770
 
+    # workaround for fargate, since we can't -v /dev/sdm:/dev/shm
+    # see: https://stackoverflow.com/questions/48084977/alternative-to-mounting-dev-shm-volume-in-selenium-grid-aws-fargate-setup
+    options.add_argument("--disable-dev-shm-usage")
+
     # random independent user dir
     # options.add_argument(f"--user-data-dir=/tmp/chrome-user-data-{uuid.uuid4()}")
 
