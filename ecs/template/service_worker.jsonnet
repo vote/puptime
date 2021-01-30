@@ -15,7 +15,7 @@ local memory = std.extVar('memory');
       command: ['/app/ops/worker_launch.sh', 'default'],
     },
   ] + seleniumContainer.for_env(env) + datadogContainers.for_env(env),
-  memory: '4096',
+  memory: '8192',
   requiresCompatibilities: ['FARGATE'],
   networkMode: 'awsvpc',
   cpu: '1024',

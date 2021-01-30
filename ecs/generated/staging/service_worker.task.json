@@ -242,7 +242,7 @@
    ],
    "cpu": "1024",
    "executionRoleArn": "arn:aws:iam::719108811834:role/Uptime-ECS-General",
-   "memory": "4096",
+   "memory": "8192",
    "networkMode": "awsvpc",
    "requiresCompatibilities": [
       "FARGATE"
