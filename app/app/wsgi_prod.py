@@ -10,12 +10,12 @@ from whitenoise import WhiteNoise
 
 from common.apm import tracer
 
-ddtrace.patch_all()
-ddtrace.patch(gevent=True)
+# ddtrace.patch_all()
+# ddtrace.patch(gevent=True)
 
-ddtrace.Pin.override(django, tracer=tracer)
-ddtrace.Pin.override(psycopg2, tracer=tracer)
-ddtrace.Pin.override(redis, tracer=tracer)
+# ddtrace.Pin.override(django, tracer=tracer)
+# ddtrace.Pin.override(psycopg2, tracer=tracer)
+# ddtrace.Pin.override(redis, tracer=tracer)
 
 monkey.patch_all()
 

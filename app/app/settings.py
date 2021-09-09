@@ -183,10 +183,10 @@ LOGGING = {
             "handlers": [handler],
             "level": env.str("DJANGO_LOGGING_LEVEL", default="INFO"),
         },
-        "ddtrace": {
-            "handlers": [handler],
-            "level": env.str("DJANGO_LOGGING_LEVEL", default="INFO"),
-        },
+        # "ddtrace": {
+        #     "handlers": [handler],
+        #     "level": env.str("DJANGO_LOGGING_LEVEL", default="INFO"),
+        # },
         "common": {
             "handlers": [handler],
             "level": env.str("DJANGO_LOGGING_LEVEL", default="INFO"),
@@ -248,7 +248,7 @@ ALIVE_CHECKS: Dict[str, Dict[Optional[str], Optional[str]]] = {
 
 #### DATADOG CONFIGURATION
 
-ddtrace.tracer.set_tags({"build": BUILD})
+# ddtrace.tracer.set_tags({"build": BUILD})
 
 #### END DATADOG CONFIGURATION
 
