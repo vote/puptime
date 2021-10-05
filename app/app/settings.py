@@ -13,7 +13,6 @@ import os
 from pathlib import Path
 from typing import Dict, Optional
 
-import ddtrace
 import environs
 import sentry_sdk
 from celery.schedules import crontab
