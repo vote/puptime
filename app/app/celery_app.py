@@ -2,12 +2,11 @@ import os
 import time
 
 import celery
-import ddtrace
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
 
 # if os.environ.get("DATADOG_API_KEY"):
-    # ddtrace.patch_all()
+# ddtrace.patch_all()
 
 app = celery.Celery("uptime")
 

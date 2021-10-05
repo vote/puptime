@@ -1,14 +1,9 @@
 import os
 
-import ddtrace
-import django
-import psycopg2
-import redis
 from django.core.wsgi import get_wsgi_application
 from gevent import monkey
 from whitenoise import WhiteNoise
 
-from common.apm import tracer
 
 # ddtrace.patch_all()
 # ddtrace.patch(gevent=True)
