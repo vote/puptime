@@ -22,13 +22,13 @@ shell:
 	docker-compose exec server /bin/bash
 
 testpy:
-	docker-compose exec server bash -c "TEST=1 pytest -n `scripts/nproc-max ${MAXPROC}` /app/"
+	docker-compose exec server bash -c "TEST=1 pytest /app/"
 
 mypy:
 	docker-compose exec server mypy /app/
 
 test:
-	docker-compose exec server bash -c "TEST=1 pytest -n `scripts/nproc-max ${MAXPROC}` /app/ && mypy /app/"
+	docker-compose exec server bash -c "TEST=1 pytest /app/ && mypy /app/"
 
 lint:
 	docker-compose exec server bash -c "autoflake \
