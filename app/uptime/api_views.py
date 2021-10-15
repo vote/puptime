@@ -3,7 +3,7 @@ import logging
 from rest_framework import generics, viewsets
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 
 from common import enums
 
@@ -46,7 +46,7 @@ class SiteMineViewSet(viewsets.ModelViewSet):
     serializer_class = SiteSerializer
     pagination_class = PaginationStyle
     authentication_classes = [BasicAuthentication]
-    permission_classes = [IsOwnerOrReadOnly]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         qs = super().get_queryset()
