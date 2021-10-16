@@ -8,6 +8,7 @@ import paramiko
 from django.utils import timezone
 
 from common import enums
+from common.util import safe_while
 from uptime.models import Proxy
 from uptime.selenium import get_driver, test_driver
 
@@ -177,14 +178,16 @@ WantedBy=multi-user.target
 
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy)
-        while True:
-            try:
-                logger.info(f"Connecting to {ip} via SSH...")
-                ssh.connect(ip, username=user, key_filename=tmp_key.name, timeout=10)
-                break
-            except:
-                logger.info("Waiting a bit...")
-                time.sleep(5)
+        with safe_while(sleep=5, tries=30) as proceed:
+            while proceed():
+                try:
+                    logger.info(f"Connecting to {ip} via SSH...")
+                    ssh.connect(
+                        ip, username=user, key_filename=tmp_key.name, timeout=10
+                    )
+                    break
+                except:
+                    logger.info("Waiting a bit...")
 
         logger.info("Writing systemd unit...")
         stdin_, stdout_, stderr_ = ssh.exec_command(

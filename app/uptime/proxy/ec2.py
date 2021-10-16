@@ -1,13 +1,13 @@
 import datetime
 import logging
 import random
-import time
 import uuid
 
 from django.conf import settings
 
 from common import enums
 from common.aws import get_proxy_ec2_client
+from common.util import safe_while
 from uptime.models import Proxy
 
 REGIONS = {
@@ -99,16 +99,18 @@ class EC2Proxy(object):
         instance_id = i["InstanceId"]
         logger.info(f"Created instance {instance_id} in {region}")
 
-        while True:
-            logger.info("Waiting for public IP address...")
-            try:
-                response = ec2_client.describe_instances(InstanceIds=[instance_id])
-                ip = response["Reservations"][0]["Instances"][0].get("PublicIpAddress")
-                if ip:
-                    break
-            except Exception as e:
-                logger.info(e)
-            time.sleep(5)
+        with safe_while(sleep=5, tries=30):
+            while proceed():
+                logger.info("Waiting for public IP address...")
+                try:
+                    response = ec2_client.describe_instances(InstanceIds=[instance_id])
+                    ip = response["Reservations"][0]["Instances"][0].get(
+                        "PublicIpAddress"
+                    )
+                    if ip:
+                        break
+                except Exception as e:
+                    logger.info(e)
 
         create_ubuntu_proxy(
             "ec2", name, ip, {"region": region, "instance_id": instance_id,}, "ubuntu",

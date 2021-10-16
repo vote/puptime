@@ -1,7 +1,6 @@
 import datetime
 import logging
 import random
-import time
 import uuid
 
 import requests
@@ -62,22 +61,22 @@ class DigitalOceanProxy(object):
         # wait for IP address
         logger.info(f"Created {name} droplet_id {droplet_id}, waiting for IP...")
         ip = None
-        while True:
-            response = requests.get(
-                f"{DROPLET_ENDPOINT}/{droplet_id}",
-                headers={
-                    "Authorization": f"Bearer {settings.DIGITALOCEAN_KEY}",
-                    "Content-Type": "application/json",
-                },
-            )
-            for v4 in response.json()["droplet"]["networks"].get("v4", []):
-                if v4["type"] == "public":
-                    ip = v4["ip_address"]
+        with safe_while(sleep=1, tries=60):
+            while proceed():
+                response = requests.get(
+                    f"{DROPLET_ENDPOINT}/{droplet_id}",
+                    headers={
+                        "Authorization": f"Bearer {settings.DIGITALOCEAN_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                )
+                for v4 in response.json()["droplet"]["networks"].get("v4", []):
+                    if v4["type"] == "public":
+                        ip = v4["ip_address"]
+                        break
+                if ip:
                     break
-            if ip:
-                break
-            logger.info("waiting for IP")
-            time.sleep(1)
+                logger.info("waiting for IP")
 
         create_ubuntu_proxy(
             "digitalocean",
