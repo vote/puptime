@@ -204,7 +204,7 @@ class Downtime(UUIDModel, TimestampModel):
     )
 
     def duration(self):
-        return up_check.created_at - down_check.created_at
+        return self.first_down_check.created_at - self.last_down_check.created_at
 
     class Meta:
         ordering = ["-created_at"]
