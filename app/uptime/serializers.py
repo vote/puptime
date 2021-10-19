@@ -49,8 +49,8 @@ class DowntimeSerializer(serializers.ModelSerializer):
     duration = serializers.SerializerMethodField("get_duration")
 
     def get_duration(self, obj):
-        if obj.up_check and obj.down_check:
-            return (obj.up_check.created_at - obj.down_check.created_at).total_seconds()
+        if obj.last_down_check and obj.first_down_check:
+            return (obj.last_down_check.created_at - obj.first_down_check.created_at).total_seconds()
         else:
             return None
 
@@ -59,7 +59,8 @@ class DowntimeSerializer(serializers.ModelSerializer):
         fields = [
             "uuid",
             "site",
-            "down_check",
+            "first_down_check",
+            "last_down_check",
             "up_check",
             "duration",
         ]
