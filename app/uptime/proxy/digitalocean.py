@@ -61,7 +61,7 @@ class DigitalOceanProxy(object):
         # wait for IP address
         logger.info(f"Created {name} droplet_id {droplet_id}, waiting for IP...")
         ip = None
-        with safe_while(sleep=1, tries=60):
+        with safe_while(sleep=1, tries=60) as proceed:
             while proceed():
                 response = requests.get(
                     f"{DROPLET_ENDPOINT}/{droplet_id}",

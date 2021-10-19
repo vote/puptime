@@ -99,7 +99,7 @@ class EC2Proxy(object):
         instance_id = i["InstanceId"]
         logger.info(f"Created instance {instance_id} in {region}")
 
-        with safe_while(sleep=5, tries=30):
+        with safe_while(sleep=5, tries=30) as proceed:
             while proceed():
                 logger.info("Waiting for public IP address...")
                 try:
