@@ -58,15 +58,17 @@ CELERY_TASK_DEFAULT_QUEUE = "default"
 
 CELERY_BEAT_SCHEDULE = {
     "test": {"task": "uptime.tasks.tick", "schedule": crontab(minute=f"*/1"),},
-    "check-proxies": {
+}
+
+if env.bool("PROXIES", default=True):
+    CELERY_BEAT_SCHEDULE["check-proxies"] = {
         "task": "uptime.tasks.check_proxies",
         "schedule": crontab(minute=f"*/15"),
-    },
-    "check-all": {
+    }
+    CELERY_BEAT_SCHEDULE["check-all"] = {
         "task": "uptime.tasks.check_all",
         "schedule": crontab(minute=f"*/5"),
-    },
-}
+    }
 
 # Application definition
 INSTALLED_APPS = [
