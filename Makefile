@@ -6,6 +6,9 @@ MAXPROC ?= 16
 up:
 	scripts/up.sh
 
+up-prod:
+	scripts/up-prod.sh
+
 build:
 	docker-compose build
 

@@ -1,0 +1,128 @@
+version: '3.7'
+services:
+#  postgres:
+#    container_name: postgres_uptime
+#    image: postgres:13.1
+#    environment:
+#      - POSTGRES_DB=uptime
+#      - POSTGRES_PASSWORD=uptime
+#    ports:
+#      - "15432:5432"
+#    volumes:
+#      - pgdata_uptime:/var/lib/postgresql/data
+
+  redis:
+    container_name: redis_uptime
+    image: 'redis:5.0.5'
+    ports:
+      - "127.0.0.1:26379:6379"
+    volumes:
+      - redisdata_uptime:/data
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+      cache_from:
+        - voteamerica/uptime-ci-cache:latest
+    image: voteamerica/uptime-ci-cache:latest
+    entrypoint: wait-for-it -t 45 postgres:5432 redis:6379 --
+    command: watchmedo auto-restart --directory /app/ --pattern=*.yml --recursive -- python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./app:/app:cached
+    ports:
+      - "9901:8000"
+    environment:
+      - SECRET_KEY=abcd
+      - DJANGO_SETTINGS_MODULE=app.settings
+      - SELENIUM_URL=http://selenium:4444/wd/hub
+      - ALLOWED_HOSTS=*
+      - DEBUG=True
+      - DD_AGENT_HOST=ddagent
+      - DD_DOGSTATSD_PORT=3333
+    env_file:
+      - .env
+      - .env-prod
+    depends_on:
+#      - postgres
+      - redis
+
+  beat:
+    image: voteamerica/uptime-ci-cache:latest
+    entrypoint: wait-for-it -t 45 postgres:5432 redis:6379 --
+    command: watchmedo auto-restart --directory /app/ --pattern=*.py --recursive -- python -m celery -A app.celery_beat beat --scheduler redbeat.RedBeatScheduler
+    volumes:
+      - ./app:/app
+    environment:
+      - SECRET_KEY=abcd
+      - DJANGO_SETTINGS_MODULE=app.settings
+      - SELENIUM_URL=http://selenium:4444/wd/hub
+      - ALLOWED_HOSTS=*
+      - DEBUG=True
+      - DD_AGENT_HOST=ddagent
+      - DD_DOGSTATSD_PORT=3333
+    env_file:
+      - .env
+      - .env-prod
+    depends_on:
+#      - postgres
+      - redis
+
+  worker:
+    image: voteamerica/uptime-ci-cache:latest
+    entrypoint: wait-for-it -t 45 postgres:5432 redis:6379 selenium:4444 --
+    command: watchmedo auto-restart --directory /app/ --patterns='*.py;*.yml' --recursive -- python -m celery -A app.celery_app worker -Q default
+    volumes:
+      - ./app:/app
+    environment:
+      - SECRET_KEY=abcd
+      - DJANGO_SETTINGS_MODULE=app.settings
+      - SELENIUM_URL=http://selenium:4444/wd/hub
+      - ALLOWED_HOSTS=*
+      - DEBUG=True
+      - DD_AGENT_HOST=ddagent
+      - DD_DOGSTATSD_PORT=3333
+    env_file:
+      - .env
+      - .env-prod
+    depends_on:
+#      - postgres
+      - redis
+      - beat
+      - selenium
+
+  selenium:
+    image: selenium/standalone-chrome:3.141
+    ports:
+      - "4444:4444"
+    shm_size: '2gb'
+
+  echo:
+    image: voteamerica/uptime-ci-cache:latest
+    command: python -m echo
+    volumes:
+      - ./app/echo.py:/app/echo.py
+    ports:
+      - "13333:3333"
+
+#  ddagent:
+#    image: datadog/agent
+#    environment:
+#      - DD_APM_ENABLED=true
+#      - DD_BIND_HOST=0.0.0.0
+#      - DD_LOG_LEVEL=CRITICAL
+#      - DATADOG_ENV=local
+#      - DATADOG_SERVICE_NAME=local
+#      - DD_TAGS='env:local'
+#    expose:
+#      - "8125/udp"
+#      - "8126"
+#    ports:
+#      - "8125:8125/udp"
+#      - "8126:8126"
+#    env_file:
+#      - .env
+
+volumes:
+  pgdata_uptime:
+  redisdata_uptime:
