@@ -19,5 +19,4 @@ COPY scripts/docker_build_step2.sh /root/
 COPY app/ $APP_DIR/
 RUN bash /root/docker_build_step2.sh
 
-EXPOSE 8000
-CMD ["/app/ops/web_launch.sh"]
+CMD celery -A app.celery_app worker -Q default --without-heartbeat --without-mingle --without-gossip

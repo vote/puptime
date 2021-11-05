@@ -12,7 +12,7 @@ from whitenoise import WhiteNoise
 # ddtrace.Pin.override(psycopg2, tracer=tracer)
 # ddtrace.Pin.override(redis, tracer=tracer)
 
-monkey.patch_all()
+# monkey.patch_all()
 
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
