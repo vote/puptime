@@ -21,9 +21,8 @@ notifications:
   email: false
 
 deploy:
-  - provider: script
-    script: bash scripts/travis_deploy_tags.sh
-    on:
-      tags: true
-      all_branches: true
-      repo: vote/puptime
+  provider: script
+  script: bash scripts/heroku_deploy.sh
+  on:
+    all_branches: true
+    condition: $TRAVIS_BRANCH =~ ^production$

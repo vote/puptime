@@ -1,12 +1,10 @@
-import multiprocessing
-
 from psycogreen.gevent import patch_psycopg
 
 timeout = 75
 keepalive = 75
 accesslog = "-"
 errorlog = "-"
-num_proc = multiprocessing.cpu_count()
+num_proc = 3
 worker_class = "gevent"
 workers = (num_proc * 2) + 1
 access_log_format = (
