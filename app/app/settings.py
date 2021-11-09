@@ -41,6 +41,8 @@ ENV = env.str("ENV", default=CLOUD_STACK)
 TAG = env.str("TAG", default="")
 BUILD = env.str("BUILD", default="0")
 
+EC2_PROXY_REGIONS = env.json("EC2_PROXY_REGIONS", '{}')
+
 
 ### CELERY #########################
 

@@ -10,29 +10,6 @@ from common.aws import get_proxy_ec2_client
 from common.util import safe_while
 from uptime.models import Proxy
 
-REGIONS = {
-    "us-west-1": {
-        "ami": "ami-034bf895b736be04a",
-        "subnet_id": "subnet-014d9a5b",
-        "instance_type": "t3.nano",
-    },
-    "us-west-2": {
-        "ami": "ami-089668cd321f3cf82",
-        "subnet_id": "subnet-b5bb03e8",
-        "instance_type": "t3.nano",
-    },
-    #    "us-east-1": {
-    #        "ami": "ami-011899242bb902164",
-    #        "subnet_id": "subnet-845d81b5",
-    #        "instance_type": "t3.nano",
-    #    },
-    "us-east-2": {
-        "ami": "ami-07d5003620a5450ee",
-        "subnet_id": "subnet-82f7b7ce",
-        "instance_type": "t3.nano",
-    },
-    #    "ca-central-1": "ami-0a20346326d3d1853",
-}
 
 """
     "eu-central-1",
@@ -55,12 +32,12 @@ class EC2Proxy(object):
     def create(cls):
         from uptime.proxy.common import create_ubuntu_proxy
 
-        region = random.choice(list(REGIONS.keys()))
+        region = random.choice(list(settings.EC2_PROXY_REGIONS.keys()))
         ec2_client = get_proxy_ec2_client(region)
 
-        ami = REGIONS[region]["ami"]
-        subnet_id = REGIONS[region]["subnet_id"]
-        instance_type = REGIONS[region]["instance_type"]
+        ami = settings.EC2_PROXY_REGIONS[region]["ami"]
+        subnet_id = settings.EC2_PROXY_REGIONS[region]["subnet_id"]
+        instance_type = settings.EC2_PROXY_REGIONS[region]["instance_type"]
 
         proxy_uuid = uuid.uuid4()
         name = f"proxy-ec2-{region}-{str(proxy_uuid)}"
@@ -131,7 +108,7 @@ class EC2Proxy(object):
     @classmethod
     def get_proxies(cls):
         r = {}
-        for region in REGIONS.keys():
+        for region in settings.EC2_PROXY_REGIONS.keys():
             logger.info(f"Enumerating ec2 instances in {region}...")
             ec2_client = get_proxy_ec2_client(region)
             response = ec2_client.describe_instances(
