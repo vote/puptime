@@ -92,7 +92,7 @@ services:
       - selenium
 
   selenium:
-    image: selenium/standalone-chrome:3.141
+    image: selenium/standalone-chrome:3.141.59
     ports:
       - "4444:4444"
     shm_size: '2gb'
