@@ -1,0 +1,17 @@
+FROM python:3.7-buster
+
+ENV APP_DIR=/app
+WORKDIR $APP_DIR
+
+RUN apt-get update && \
+    apt-get install -y wait-for-it gdal-bin postgis && \
+    apt-get clean
+
+COPY app/requirements.txt $APP_DIR/
+RUN pip install -r requirements.txt --use-deprecated=legacy-resolver
+
+COPY scripts/docker_build_step2.sh /root/
+COPY app/ $APP_DIR/
+RUN bash /root/docker_build_step2.sh
+
+CMD celery -A app.celery_beat beat --scheduler redbeat.RedBeatScheduler --pidfile="/app/celerybeat-checkable.pid"
