@@ -9,14 +9,12 @@ class CheckSerializer(serializers.ModelSerializer):
         fields = [
             "uuid",
             "site",
-            "up",
-            "blocked",
+            "status",
             "ignore",
             "load_time",
             "error",
             "proxy",
             "created_at",
-            "title",
             "content",
         ]
 

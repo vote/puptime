@@ -173,8 +173,6 @@ class Check(UUIDModel, TimestampModel):
     status = models.TextField(
         null=True, choices=[(tag.name, tag.value) for tag in enums.CheckStatus]
     )
-    up = models.BooleanField(null=True)
-    blocked = models.BooleanField(null=True)
     ignore = models.BooleanField(null=True)
     load_time = models.FloatField(null=True)
     error = models.TextField(null=True)

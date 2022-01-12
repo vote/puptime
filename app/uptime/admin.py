@@ -10,7 +10,7 @@ class SiteAdmin(admin.ModelAdmin):
 
 @admin.register(models.Check)
 class CheckAdmin(admin.ModelAdmin):
-    list_display = ("site", "up", "blocked", "ignore")
+    list_display = ("site", "status", "ignore")
 
 
 @admin.register(models.Downtime)
