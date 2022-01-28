@@ -7,6 +7,7 @@ import requests
 from django.conf import settings
 
 from common import enums
+from common.util import safe_while
 from uptime.models import Proxy
 
 PROXY_PREFIX = "proxy-"
