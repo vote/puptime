@@ -217,10 +217,11 @@ class Proxy(UUIDModel, TimestampModel):
     )
     failure_count = models.IntegerField(null=True)
     last_used = models.DateTimeField(null=True)
+    region = models.TextField(null=True)
     metadata = models.JSONField(null=True)  # type: ignore
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Proxy {self.uuid} - {self.address} {self.status}"
+        return f"Proxy {self.uuid} - {self.source} {self.region} {self.address} {self.status}"
