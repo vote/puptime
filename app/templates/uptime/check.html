@@ -9,6 +9,7 @@
     <p>Site: {{ object.site.description }}</p>
     <p>Time: {{ object.created_at }}</p>
     <p>Current status: {{ object.status }}</p>
+    <p><b>{{object.error}}</b><p>
     <hr>
     <p>Snapshot: <a href="{{object.content.snapshot_url}}">{{object.content.snapshot_url}}</a>
       <br>
