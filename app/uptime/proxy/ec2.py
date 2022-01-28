@@ -158,6 +158,7 @@ class EC2Proxy(object):
                     proxy.delete()
                 else:
                     # keep
+                    logger.info(f"Proxy {proxy} - keeping for now")
                     del stray[proxy.metadata.get("instance_id")]
             else:
                 if proxy.status != enums.ProxyStatus.DOWN:
