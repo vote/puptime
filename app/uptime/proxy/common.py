@@ -5,6 +5,7 @@ import tempfile
 import time
 
 import paramiko
+from django.db.models import Q
 from django.utils import timezone
 
 from common import enums
@@ -48,16 +49,19 @@ def cleanup():
             oldest.status = enums.ProxyStatus.RETIRED
             oldest.save()
 
-    # kill retired proxies?
-    for proxy in Proxy.objects.filter(status=enums.ProxyStatus.RETIRED).order_by(
+    # kill old retired|burned proxies?
+    for proxy in Proxy.objects.filter(
+            Q(status=enums.ProxyStatus.RETIRED)
+            | Q(status=enums.ProxyStatus.BURNED)
+    ).order_by(
         "created_at"
     ):
         if timezone.now() - proxy.modified_at > datetime.timedelta(minutes=30):
-            logger.info(f"Marking DOWN retired {proxy}")
+            logger.info(f"Marking DOWN {proxy}")
             proxy.status = enums.ProxyStatus.DOWN
             proxy.save()
         else:
-            logger.info(f"Keeping RETIRED {proxy} for a bit")
+            logger.info(f"Keeping {proxy} for a bit")
 
     for source, info in PROXY_TYPES.items():
         cls = info["cls"]
