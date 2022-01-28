@@ -12,13 +12,6 @@ from uptime.models import Proxy
 
 PROXY_PREFIX = "proxy-"
 
-REGIONS = [
-    "nyc1",
-    "nyc3",
-    "sfo2",
-    "sfo3",
-]
-
 CREATE_TEMPLATE = {
     "size": "s-1vcpu-1gb",
     "image": "ubuntu-18-04-x64",
@@ -28,17 +21,26 @@ CREATE_TEMPLATE = {
 }
 
 DROPLET_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
+REGION_ENDPOINT = "https://api.digitalocean.com/v2/regions"
 
 logger = logging.getLogger("uptime")
 
 
 class DigitalOceanProxy(object):
     @classmethod
-    def create(cls, region=None):
+    def create(cls):
         from uptime.proxy.common import create_ubuntu_proxy
 
-        if not region:
-            region = random.choice(REGIONS)
+        response = requests.get(
+            REGION_ENDPOINT,
+            headers={
+                "Authorization": f"Bearer {settings.DIGITALOCEAN_KEY}",
+            },
+        )
+        regions = [
+            r["slug"] for r in response.json()["regions"] if r["available"]
+        ]
+        region = random.choice(regions)
 
         proxy_uuid = uuid.uuid4()
         name = f"{PROXY_PREFIX}{region}-{str(proxy_uuid)}"
