@@ -130,7 +130,7 @@ def proxy_is_up(address: str, timeout: int = 3) -> bool:
         return False
 
 
-def create_ubuntu_proxy(source, name, ip, metadata, user):
+def create_ubuntu_proxy(source, region, name, ip, metadata, user):
     port = random.randint(PROXY_PORT_MIN, PROXY_PORT_MAX)
 
     metadata.update(
@@ -138,6 +138,7 @@ def create_ubuntu_proxy(source, name, ip, metadata, user):
     )
     proxy = Proxy.objects.create(
         source=source,
+        region=region,
         address=f"{ip}:{port}",
         description=name,
         status=enums.ProxyStatus.CREATING,

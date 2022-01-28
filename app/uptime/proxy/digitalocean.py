@@ -80,6 +80,7 @@ class DigitalOceanProxy(object):
 
         create_ubuntu_proxy(
             "digitalocean",
+            region,
             name,
             ip,
             {"region": region, "droplet_id": droplet_id,},
