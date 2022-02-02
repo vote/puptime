@@ -271,9 +271,9 @@ def check_site_with(driver, proxy, site):
     if status == enums.CheckStatus.BLOCKED:
         logger.info(f"BURNED PROXY: {site} ({reason}) duration {dur}, {proxy}")
         proxy.failure_count += 1
-        proxy.state = enums.ProxyStatus.BURNED
+        #proxy.state = enums.ProxyStatus.BURNED
         proxy.save()
-        raise StaleProxyError
+        #raise StaleProxyError
 
     return check
 
