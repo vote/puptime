@@ -29,10 +29,13 @@ logger = logging.getLogger("uptime")
 
 class EC2Proxy(object):
     @classmethod
-    def create(cls):
+    def get_regions(cls):
+        return list(settings.EC2_PROXY_REGIONS.keys())
+
+    @classmethod
+    def create(cls, region):
         from uptime.proxy.common import create_ubuntu_proxy
 
-        region = random.choice(list(settings.EC2_PROXY_REGIONS.keys()))
         ec2_client = get_proxy_ec2_client(region)
 
         ami = settings.EC2_PROXY_REGIONS[region]["ami"]

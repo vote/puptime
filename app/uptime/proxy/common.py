@@ -20,8 +20,8 @@ logger = logging.getLogger("uptime")
 from django.conf import settings
 
 PROXY_TYPES = {
-    "digitalocean": {"cls": digitalocean.DigitalOceanProxy, "target": 0,},
-    "ec2": {"cls": ec2.EC2Proxy, "target": 6,},
+    "digitalocean": {"cls": digitalocean.DigitalOceanProxy, "target": 1,},
+    "ec2": {"cls": ec2.EC2Proxy, "target": 1,},
 }
 
 PROXY_PORT_MIN = 40000
@@ -94,16 +94,20 @@ def create_proxies():
     for source, info in PROXY_TYPES.items():
         cls = info["cls"]
         target = info["target"]
-        proxies = Proxy.objects.filter(status=enums.ProxyStatus.UP, source=source)
-        num_up = len(proxies)
 
-        if num_up < target:
-            want = target - num_up
-            logger.info(f"Have {num_up}/{target} {source} proxies, creating {want}")
-            for i in range(want):
-                cls.create()
-        else:
-            logger.info(f"Have {num_up}/{target} {source} proxies")
+        for region in cls.get_regions():
+            proxies = Proxy.objects.filter(
+                status=enums.ProxyStatus.UP,
+                source=source,
+                region=region)
+            num_up = len(proxies)
+            if num_up < target:
+                want = target - num_up
+                logger.info(f"Have {num_up}/{target} {source} {region} proxies, creating {want}")
+                for i in range(want):
+                    cls.create(region)
+            else:
+                logger.info(f"Have {num_up}/{target} {source} {region} proxies")
 
 
 def proxy_is_up(address: str, timeout: int = 3) -> bool:

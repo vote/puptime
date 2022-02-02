@@ -28,9 +28,7 @@ logger = logging.getLogger("uptime")
 
 class DigitalOceanProxy(object):
     @classmethod
-    def create(cls):
-        from uptime.proxy.common import create_ubuntu_proxy
-
+    def get_regions(cls):
         response = requests.get(
             REGION_ENDPOINT,
             headers={
@@ -40,7 +38,11 @@ class DigitalOceanProxy(object):
         regions = [
             r["slug"] for r in response.json()["regions"] if r["available"]
         ]
-        region = random.choice(regions)
+        return regions
+
+    @classmethod
+    def create(cls, region):
+        from uptime.proxy.common import create_ubuntu_proxy
 
         proxy_uuid = uuid.uuid4()
         name = f"{PROXY_PREFIX}{region}-{str(proxy_uuid)}"
