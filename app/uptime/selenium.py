@@ -64,51 +64,26 @@ def get_driver(proxy):
 
 
 def get_drivers():
-    drivers = []
+    drivers = {}
 
-    unused_proxies = list(
+    proxies = list(
         Proxy.objects.filter(
-            status=enums.ProxyStatus.UP, last_used__isnull=True
-        ).order_by("failure_count", "created_at")
-    )
-    used_proxies = list(
-        Proxy.objects.filter(status=enums.ProxyStatus.UP).order_by(
-            "failure_count", "last_used",
+            status=enums.ProxyStatus.UP,
         )
     )
 
-    # always try to keep a fresh proxy in reserve, if we can
-    if unused_proxies and len(unused_proxies) + len(used_proxies) > 2:
-        reserve = unused_proxies.pop()
-        logger.debug(f"reserve {reserve}")
-
-    proxies = unused_proxies + used_proxies
-
-    # randomly shuffle remaining proxies
-    random.shuffle(proxies)
-
     # verify the proxy is responding before we try to use it
     verified = []
-    while len(verified) < 2:
+    for proxy in proxies:
         from uptime.proxy import proxy_is_up
 
-        if not proxies:
-            logger.warning(f"failed to find 2 working proxies")
-            raise NoProxyError(f"failed to find 2 working proxies")
-
-        proxy = proxies.pop()
         if proxy_is_up(proxy.address):
-            verified.append(proxy)
+            driver = get_driver(proxy)
+            drivers[proxy.uuid] = driver, proxy
 
-    backup = verified[0]
-    primary = verified[1]
-    logger.info(f"backup {backup} last_used {backup.last_used}")
-    logger.info(f"primary {primary} last_used {primary.last_used}")
-    drivers.append([get_driver(primary), primary])
-    drivers.append([get_driver(backup), backup])
-
-    primary.last_used = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
-    primary.save()
+    if not len(drivers) < 2:
+        logger.warning(f"failed to find 2 working proxies")
+        raise NoProxyError(f"failed to find 2 working proxies")
 
     return drivers
 
