@@ -147,7 +147,9 @@ def check_site_with_pos(drivers, pos, site):
 def classify_check(title: str, content: str) -> Tuple[enums.CheckStatus, str]:
     BLOCK_STRINGS = [
         "Request unsuccessful. Incapsula incident ID",
-        #        "<html><head></head><body></body></html>",
+        "<script src=\"/_Incapsula_Resource?",
+        "Checking your browser before accessing",
+        "<html><head></head><body></body></html>",
     ]
     for s in BLOCK_STRINGS:
         if s in content:
