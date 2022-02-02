@@ -203,9 +203,11 @@ def check_site_with(driver, proxy, site):
             if response.headers["content-type"] == "application/pdf":
                 status = enums.CheckStatus.UP
             else:
-                status = enums.CheckStatus.DOWN
-                content = response.content
-                reason = f"content-type is '{response.headers['content-type']}', not expected 'application/pdf'"
+                content = str(response.content)
+                status, reason = classify_check('', content)
+                if status == enums.CheckStatus.UP:
+                    status = enums.CheckStatus.DOWN
+                    reason = f"content-type is '{response.headers['content-type']}', not expected 'application/pdf'"
         except Exception as e:
             status = enums.CheckStatus.DOWN
             reason = str(e)
