@@ -6,7 +6,10 @@ from selenium import webdriver
 from selenium.common.exceptions import (
     RemoteDriverServerException,
     SessionNotCreatedException,
+    TimeoutException,
+    WebDriverException,
 )
+from selenium.webdriver.support.ui import WebDriverWait
 
 from common import enums
 from uptime.exceptions import NoProxyError, SeleniumError
@@ -32,16 +35,20 @@ def get_driver(proxy):
 
     # https://stackoverflow.com/questions/48450594/selenium-timed-out-receiving-message-from-renderer
     options.add_argument("--disable-gpu")
-    options.add_argument("enable-automation")
+    options.add_argument("--enable-automation")
     options.add_argument("--headless")
     options.add_argument("--window-size=1024,1080")
     options.add_argument("--no-sandbox")
-    options.add_argument("--disable-extensions")
+    #options.add_argument("--disable-extensions")
     options.add_argument("--dns-prefetch-disable")
     options.add_argument(f"--user-agent={random.choice(AGENTS)}")
     options.add_argument(
         "--disable-browser-side-navigation"
     )  # https://stackoverflow.com/a/49123152/1689770
+
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+    options.add_argument("--disable-blink-features=AutomationControlled")
 
     # workaround for fargate, since we can't -v /dev/sdm:/dev/shm
     # see: https://stackoverflow.com/questions/48084977/alternative-to-mounting-dev-shm-volume-in-selenium-grid-aws-fargate-setup
@@ -59,6 +66,7 @@ def get_driver(proxy):
         options=options,
     )
     driver.set_page_load_timeout(settings.SELENIUM_DRIVER_TIMEOUT)
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     logger.info(f"Created driver for {proxy}")
     return driver
 
@@ -130,6 +138,28 @@ def test_driver(driver):
         return False
 
 
+class not_redirecting(object):
+    def __init__(self, driver):
+        self.driver = driver
+        self.n = 1
+
+    def __call__(self, driver):
+        #logger.warning(self.driver.page_source)
+        #logger.warning(self.driver.get_cookies())
+
+        #with open(f'{self.n}.png', 'wb') as f:
+        #    f.write(driver.get_screenshot_as_png())
+
+        self.n += 1
+
+        if 'Your browser will redirect' in str(self.driver.page_source):
+            logger.warning("still redirecting")
+            return False
+        else:
+            logger.warning("done redirecting")
+            return True
+
+
 def load_site(driver, url):
     error = None
     timeout = None
@@ -139,6 +169,16 @@ def load_site(driver, url):
 
     try:
         driver.get(url)
+
+        if 'Your browser will redirect' in str(driver.page_source):
+            logger.error(f"waiting for redirect from {driver.current_url}")
+            wait = WebDriverWait(driver, 10)
+            try:
+                wait.until(not_redirecting(driver))
+                logger.error("waited for redirect")
+            except WebDriverException as e:
+                logger.info('timed out waiting for redirect')
+
         title = driver.title
         content = driver.page_source
         png = driver.get_screenshot_as_png()
@@ -146,6 +186,10 @@ def load_site(driver, url):
         raise e
     except RemoteDriverServerException as e:
         raise e
+    except TimeoutException as e:
+        raise SeleniumError(f"Problem talking to selenium worker: {e}")
+    except WebDriverException as e:
+        raise SeleniumError(f"Problem talking to selenium worker: {e}")
     except Exception as e:
         if "Timed out receiving message from renderer: -" in str(e):
             # if we get a negatime timeout it's because the worker is broken
@@ -158,6 +202,7 @@ def load_site(driver, url):
             # we may tolerate timeout in some cases; see below
             timeout = str(e)
         else:
+            logger.exception(e)
             error = str(e)
 
     return error, timeout, title, content, png
