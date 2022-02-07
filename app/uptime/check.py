@@ -147,7 +147,7 @@ def check_site_with_pos(drivers, pos, site):
 def classify_check(title: str, content: str) -> Tuple[enums.CheckStatus, str]:
     BLOCK_STRINGS = [
         "Request unsuccessful. Incapsula incident ID",
-        "<script src=\"/_Incapsula_Resource?",
+        '<script src="/_Incapsula_Resource?',
         "Checking your browser before accessing",
         "<html><head></head><body></body></html>",
     ]
@@ -204,7 +204,7 @@ def check_site_with(driver, proxy, site):
                 status = enums.CheckStatus.UP
             else:
                 content = str(response.content)
-                status, reason = classify_check('', content)
+                status, reason = classify_check("", content)
                 if status == enums.CheckStatus.UP:
                     status = enums.CheckStatus.DOWN
                     reason = f"content-type is '{response.headers['content-type']}', not expected 'application/pdf'"
@@ -275,9 +275,9 @@ def check_site_with(driver, proxy, site):
     if status == enums.CheckStatus.BLOCKED:
         logger.info(f"BURNED PROXY: {site} ({reason}) duration {dur}, {proxy}")
         proxy.failure_count += 1
-        #proxy.state = enums.ProxyStatus.BURNED
+        # proxy.state = enums.ProxyStatus.BURNED
         proxy.save()
-        #raise StaleProxyError
+        # raise StaleProxyError
 
     return check
 

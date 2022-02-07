@@ -39,7 +39,7 @@ def get_driver(proxy):
     options.add_argument("--headless")
     options.add_argument("--window-size=1024,1080")
     options.add_argument("--no-sandbox")
-    #options.add_argument("--disable-extensions")
+    # options.add_argument("--disable-extensions")
     options.add_argument("--dns-prefetch-disable")
     options.add_argument(f"--user-agent={random.choice(AGENTS)}")
     options.add_argument(
@@ -47,7 +47,7 @@ def get_driver(proxy):
     )  # https://stackoverflow.com/a/49123152/1689770
 
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
+    options.add_experimental_option("useAutomationExtension", False)
     options.add_argument("--disable-blink-features=AutomationControlled")
 
     # workaround for fargate, since we can't -v /dev/sdm:/dev/shm
@@ -66,7 +66,9 @@ def get_driver(proxy):
         options=options,
     )
     driver.set_page_load_timeout(settings.SELENIUM_DRIVER_TIMEOUT)
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    driver.execute_script(
+        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+    )
     logger.info(f"Created driver for {proxy}")
     return driver
 
@@ -144,15 +146,15 @@ class not_redirecting(object):
         self.n = 1
 
     def __call__(self, driver):
-        #logger.warning(self.driver.page_source)
-        #logger.warning(self.driver.get_cookies())
+        # logger.warning(self.driver.page_source)
+        # logger.warning(self.driver.get_cookies())
 
-        #with open(f'{self.n}.png', 'wb') as f:
+        # with open(f'{self.n}.png', 'wb') as f:
         #    f.write(driver.get_screenshot_as_png())
 
         self.n += 1
 
-        if 'Your browser will redirect' in str(self.driver.page_source):
+        if "Your browser will redirect" in str(self.driver.page_source):
             logger.warning("still redirecting")
             return False
         else:
@@ -170,14 +172,14 @@ def load_site(driver, url):
     try:
         driver.get(url)
 
-        if 'Your browser will redirect' in str(driver.page_source):
+        if "Your browser will redirect" in str(driver.page_source):
             logger.error(f"waiting for redirect from {driver.current_url}")
             wait = WebDriverWait(driver, 10)
             try:
                 wait.until(not_redirecting(driver))
                 logger.error("waited for redirect")
-            except WebDriverException as e:
-                logger.info('timed out waiting for redirect')
+            except WebDriverException:
+                logger.info("timed out waiting for redirect")
 
         title = driver.title
         content = driver.page_source

@@ -51,11 +51,8 @@ def cleanup():
 
     # kill old retired|burned proxies?
     for proxy in Proxy.objects.filter(
-            Q(status=enums.ProxyStatus.RETIRED)
-            | Q(status=enums.ProxyStatus.BURNED)
-    ).order_by(
-        "created_at"
-    ):
+        Q(status=enums.ProxyStatus.RETIRED) | Q(status=enums.ProxyStatus.BURNED)
+    ).order_by("created_at"):
         if timezone.now() - proxy.modified_at > datetime.timedelta(minutes=30):
             logger.info(f"Marking DOWN {proxy}")
             proxy.status = enums.ProxyStatus.DOWN
@@ -97,13 +94,14 @@ def create_proxies():
 
         for region in cls.get_regions():
             proxies = Proxy.objects.filter(
-                status=enums.ProxyStatus.UP,
-                source=source,
-                region=region)
+                status=enums.ProxyStatus.UP, source=source, region=region
+            )
             num_up = len(proxies)
             if num_up < target:
                 want = target - num_up
-                logger.info(f"Have {num_up}/{target} {source} {region} proxies, creating {want}")
+                logger.info(
+                    f"Have {num_up}/{target} {source} {region} proxies, creating {want}"
+                )
                 for i in range(want):
                     cls.create(region)
             else:

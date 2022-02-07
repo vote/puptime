@@ -1,6 +1,5 @@
 import datetime
 import logging
-import random
 import uuid
 
 from django.conf import settings
@@ -93,7 +92,12 @@ class EC2Proxy(object):
                     logger.info(e)
 
         create_ubuntu_proxy(
-            "ec2", region, name, ip, {"region": region, "instance_id": instance_id,}, "ubuntu",
+            "ec2",
+            region,
+            name,
+            ip,
+            {"region": region, "instance_id": instance_id,},
+            "ubuntu",
         )
 
     @classmethod

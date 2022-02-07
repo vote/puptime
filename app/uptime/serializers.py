@@ -48,7 +48,9 @@ class DowntimeSerializer(serializers.ModelSerializer):
 
     def get_duration(self, obj):
         if obj.last_down_check and obj.first_down_check:
-            return (obj.last_down_check.created_at - obj.first_down_check.created_at).total_seconds()
+            return (
+                obj.last_down_check.created_at - obj.first_down_check.created_at
+            ).total_seconds()
         else:
             return None
 

@@ -1,6 +1,5 @@
 import datetime
 import logging
-import random
 import uuid
 
 import requests
@@ -31,13 +30,9 @@ class DigitalOceanProxy(object):
     def get_regions(cls):
         response = requests.get(
             REGION_ENDPOINT,
-            headers={
-                "Authorization": f"Bearer {settings.DIGITALOCEAN_KEY}",
-            },
+            headers={"Authorization": f"Bearer {settings.DIGITALOCEAN_KEY}",},
         )
-        regions = [
-            r["slug"] for r in response.json()["regions"] if r["available"]
-        ]
+        regions = [r["slug"] for r in response.json()["regions"] if r["available"]]
         return regions
 
     @classmethod
