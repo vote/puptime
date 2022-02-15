@@ -23,3 +23,21 @@ Puptime also archives the page source and a snapshot (PNG) of every
 page load for future reference.
 
 To see puptime deployed: https://uptime.voteamerica.com/
+
+## Deploys
+
+Deploys can only be done manually right now.
+
+First, build and push the container process(es) to Heroku:
+
+    heroku container:push web --app=voteamerica-uptime --recursive
+
+(Although there are other Dockerfiles, currently only `web` is used.)
+
+Next, once the container has been built successfully, release it:
+
+    heroku container:release web --app=voteamerica-uptime
+
+Run migrations if needed:
+
+    heroku run python manage.py migrate --app=voteamerica-uptime
