@@ -41,3 +41,18 @@ Next, once the container has been built successfully, release it:
 Run migrations if needed:
 
     heroku run python manage.py migrate --app=voteamerica-uptime
+
+## Development
+
+1. Configure your environment by copying the example file:
+`cp .env.example .env` You'll want to set any values that you need to change
+
+2. Build and start the server:`make up`
+
+3. Run migrations: `make migrate`
+
+4. There aren't any tests yet, but you would run them this way: `make test`
+
+5. Create a super user: `make createsuperuser`
+
+Note: see the `Makefile` for more tasks that you might be interested in

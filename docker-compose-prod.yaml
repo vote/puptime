@@ -1,15 +1,5 @@
 version: '3.7'
 services:
-#  postgres:
-#    container_name: postgres_uptime
-#    image: postgres:13.1
-#    environment:
-#      - POSTGRES_DB=uptime
-#      - POSTGRES_PASSWORD=uptime
-#    ports:
-#      - "15432:5432"
-#    volumes:
-#      - pgdata_uptime:/var/lib/postgresql/data
 
   redis:
     container_name: redis_uptime
@@ -104,24 +94,6 @@ services:
       - ./app/echo.py:/app/echo.py
     ports:
       - "13333:3333"
-
-#  ddagent:
-#    image: datadog/agent
-#    environment:
-#      - DD_APM_ENABLED=true
-#      - DD_BIND_HOST=0.0.0.0
-#      - DD_LOG_LEVEL=CRITICAL
-#      - DATADOG_ENV=local
-#      - DATADOG_SERVICE_NAME=local
-#      - DD_TAGS='env:local'
-#    expose:
-#      - "8125/udp"
-#      - "8126"
-#    ports:
-#      - "8125:8125/udp"
-#      - "8126:8126"
-#    env_file:
-#      - .env
 
 volumes:
   pgdata_uptime:

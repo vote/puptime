@@ -7,8 +7,13 @@ RUN apt-get update && \
     apt-get install -y wait-for-it gdal-bin postgis && \
     apt-get clean
 
-COPY app/requirements.txt $APP_DIR/
-RUN pip install -r requirements.txt --use-deprecated=legacy-resolver
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="/root/.local/bin:$PATH"
+RUN poetry config virtualenvs.create false
+
+# install Python dependencies
+COPY app/poetry.lock app/pyproject.toml ./
+RUN poetry install
 
 ARG TAG_ARG
 ARG BUILD_ARG
