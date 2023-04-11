@@ -748,14 +748,14 @@ test = ["pytest", "pytest-cov", "pytest-django"]
 
 [[package]]
 name = "django-celery-results"
-version = "2.3.0"
+version = "2.4.0"
 description = "Celery result backends for Django."
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "django_celery_results-2.3.0-py2.py3-none-any.whl", hash = "sha256:37b8734ad0038cdeabe9efb09721dfdbe1ff7bf6e1d81ff3e10a1eb23a2b321f"},
-    {file = "django_celery_results-2.3.0.tar.gz", hash = "sha256:203cf7321081d09be91738aff715c97bcc769db8c727621049e2786118059dac"},
+    {file = "django_celery_results-2.4.0-py3-none-any.whl", hash = "sha256:be91307c02fbbf0dda21993c3001c60edb74595444ccd6ad696552fe3689e85b"},
+    {file = "django_celery_results-2.4.0.tar.gz", hash = "sha256:75aa51970db5691cbf242c6a0ff50c8cdf419e265cd0e9b772335d06436c4b99"},
 ]
 
 [package.dependencies]
@@ -2668,4 +2668,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "23aff65d56ebff4f5dd194212372887df2cc4ff046b837575ae06b71222a0573"
+content-hash = "cb072a6998379b44f4bf72236df7a8ca959500a641cdd210075d1e6442ff82c1"
